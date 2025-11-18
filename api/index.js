@@ -20,15 +20,47 @@ let isConnecting = false;
 let connectionPromise = null;
 
 const ensureConnection = async () => {
-   // Si ya está conectado, no hacer nada
+   // Si ya está conectado, verificar que realmente esté listo
    if (mongoose.connection.readyState === 1) {
       return;
    }
 
+   // Si está conectando, esperar a que termine
+   if (mongoose.connection.readyState === 2) {
+      await new Promise((resolve, reject) => {
+         const timeout = setTimeout(() => {
+            reject(new Error('Connection timeout'));
+         }, 10000);
+         
+         mongoose.connection.once('connected', () => {
+            clearTimeout(timeout);
+            resolve();
+         });
+         
+         mongoose.connection.once('error', (err) => {
+            clearTimeout(timeout);
+            reject(err);
+         });
+      });
+      
+      if (mongoose.connection.readyState === 1) {
+         return;
+      }
+   }
+
    // Si ya hay una conexión en progreso, esperar a que termine
    if (isConnecting && connectionPromise) {
-      await connectionPromise;
-      return;
+      try {
+         await connectionPromise;
+         // Verificar que realmente se conectó
+         if (mongoose.connection.readyState === 1) {
+            return;
+         }
+      } catch (err) {
+         // Si falló, intentar de nuevo
+         isConnecting = false;
+         connectionPromise = null;
+      }
    }
 
    // Iniciar nueva conexión
@@ -40,8 +72,18 @@ const ensureConnection = async () => {
       throw err;
    });
 
-   await connectionPromise;
-   isConnecting = false;
+   try {
+      await connectionPromise;
+      // Verificar que la conexión esté realmente lista
+      if (mongoose.connection.readyState !== 1) {
+         throw new Error('Connection not ready after connect()');
+      }
+      isConnecting = false;
+   } catch (err) {
+      isConnecting = false;
+      connectionPromise = null;
+      throw err;
+   }
 };
 
 // Middleware para asegurar conexión antes de procesar requests que necesitan BD

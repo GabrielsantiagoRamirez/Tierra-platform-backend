@@ -46,13 +46,14 @@ const connection = async () => {
 
       // Opciones optimizadas para serverless/Vercel
       const options = {
-         serverSelectionTimeoutMS: 5000, // Timeout más corto para fallar rápido
-         socketTimeoutMS: 45000, // Timeout de socket más largo
-         connectTimeoutMS: 10000, // Timeout de conexión
+         serverSelectionTimeoutMS: 10000, // Timeout para seleccionar servidor
+         socketTimeoutMS: 45000, // Timeout de socket
+         connectTimeoutMS: 10000, // Timeout de conexión inicial
          maxPoolSize: 1, // Para serverless, usar pool pequeño
          minPoolSize: 1,
-         bufferMaxEntries: 0, // Deshabilitar buffering (fallar rápido si no hay conexión)
-         bufferCommands: false, // Deshabilitar buffering de comandos
+         // Habilitar buffering para que espere la conexión antes de ejecutar comandos
+         bufferMaxEntries: 0,
+         bufferCommands: true, // IMPORTANTE: true para que espere la conexión
       };
 
       await mongoose.connect(uri, options);
