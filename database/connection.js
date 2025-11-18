@@ -66,7 +66,6 @@ const connection = async () => {
          maxPoolSize: 1, // Para serverless, usar pool pequeño
          minPoolSize: 1,
          // Habilitar buffering para que espere la conexión antes de ejecutar comandos
-         bufferMaxEntries: 0,
          bufferCommands: true, // IMPORTANTE: true para que espere la conexión
       };
 
