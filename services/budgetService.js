@@ -6,7 +6,21 @@ const Budget = require('../models/Budget');
  * @returns {Promise<Object>} Presupuesto creado
  */
 const createBudget = async (budgetData) => {
-   const newBudget = new Budget(budgetData);
+   // Asegurar que no se intente guardar id o _id (MongoDB genera _id automáticamente)
+   const cleanData = { ...budgetData };
+   delete cleanData.id;
+   delete cleanData._id;
+   
+   // Log para debug: verificar que no hay id en los datos
+   console.log('🔍 [SERVICE] Datos antes de crear Budget:', JSON.stringify(cleanData, null, 2));
+   console.log('🔍 [SERVICE] ¿Tiene campo id?', 'id' in cleanData);
+   console.log('🔍 [SERVICE] ¿Tiene campo _id?', '_id' in cleanData);
+   
+   const newBudget = new Budget(cleanData);
+   
+   // Log del documento de Mongoose antes de guardar
+   console.log('🔍 [SERVICE] Documento Mongoose antes de save:', newBudget.toObject());
+   console.log('🔍 [SERVICE] ¿Documento tiene id?', 'id' in newBudget.toObject());
    
    // Optimización para serverless: save() con timeout explícito
    // El writeConcern se configura a nivel de conexión (ya está en connection.js)

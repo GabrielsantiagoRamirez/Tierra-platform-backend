@@ -2,6 +2,9 @@ const { Schema, model } = require("mongoose");
 const mongoosePaginate = require ("mongoose-paginate-v2");
 const budgetItemSchema = require("./BudgetItem");
 
+// No definir campo 'id' - siempre usar _id de MongoDB
+// strict: true ignora campos no definidos en el schema (por defecto)
+// Esto asegura que cualquier campo 'id' que llegue será ignorado
 const budgetSchema = new Schema({
     clientName:{
         type:String,
@@ -78,6 +81,30 @@ const budgetSchema = new Schema({
         type:String,
         default:null
     }
+}, {
+    strict: true, // Ignorar campos no definidos en el schema (como 'id')
+    // MongoDB genera _id automáticamente, no necesitamos definirlo
+});
+
+// Hook pre-save: asegurar que nunca se guarde un campo 'id'
+budgetSchema.pre('save', function(next) {
+   // Eliminar cualquier campo 'id' que pueda haber llegado (siempre, no solo en nuevos)
+   if (this.id !== undefined) {
+      this.set('id', undefined, { strict: false });
+      delete this.id;
+   }
+   // También eliminar de items si existen
+   if (this.items && Array.isArray(this.items)) {
+      this.items.forEach((item, index) => {
+         if (item && typeof item === 'object') {
+            if (item.id !== undefined) {
+               delete item.id;
+            }
+            // No eliminar _id si ya existe (es válido para subdocumentos)
+         }
+      });
+   }
+   next();
 });
 
 // Transformar a snake_case para compatibilidad con Flutter

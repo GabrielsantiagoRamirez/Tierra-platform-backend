@@ -46,7 +46,12 @@ const snakeToCamel = (obj) => {
  * @returns {Object} Datos normalizados en camelCase
  */
 const normalizeBudgetData = (data, isUpdate = false) => {
-   const normalized = snakeToCamel(data);
+   // Crear una copia sin id y _id para evitar conflictos con índices únicos
+   const dataWithoutId = { ...data };
+   delete dataWithoutId.id;
+   delete dataWithoutId._id;
+   
+   const normalized = snakeToCamel(dataWithoutId);
    const result = {};
    
    // Función helper para agregar campo solo si existe
@@ -106,14 +111,21 @@ const normalizeBudgetData = (data, isUpdate = false) => {
 const normalizeBudgetItems = (items) => {
    if (!Array.isArray(items)) return [];
    
-   return items.map(item => ({
-      // No necesitamos id, MongoDB lo generará automáticamente si es necesario
-      concept: item.concept,
-      quantity: item.quantity,
-      unit: item.unit,
-      unitPrice: item.unitPrice || item.unit_price,
-      notes: item.notes || null
-   }));
+   return items.map(item => {
+      // Crear copia sin id y _id para evitar conflictos con índices únicos
+      const itemWithoutId = { ...item };
+      delete itemWithoutId.id;
+      delete itemWithoutId._id;
+      
+      return {
+         // No necesitamos id, MongoDB lo generará automáticamente si es necesario
+         concept: itemWithoutId.concept,
+         quantity: itemWithoutId.quantity,
+         unit: itemWithoutId.unit,
+         unitPrice: itemWithoutId.unitPrice || itemWithoutId.unit_price,
+         notes: itemWithoutId.notes || null
+      };
+   });
 };
 
 module.exports = {
