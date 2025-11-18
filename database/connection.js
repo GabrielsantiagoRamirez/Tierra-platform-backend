@@ -49,7 +49,7 @@ const connection = async () => {
          await new Promise((resolve, reject) => {
             const timeout = setTimeout(() => {
                reject(new Error('Connection timeout: Waiting for existing connection'));
-            }, 10000);
+            }, 5000); // Reducido de 10s a 5s
             
             mongoose.connection.once('connected', () => {
                clearTimeout(timeout);
@@ -72,15 +72,30 @@ const connection = async () => {
       console.log('🔄 Intentando conectar a MongoDB...');
       console.log('📍 URI de conexión:', uri.replace(/\/\/[^:]+:[^@]+@/, '//***:***@')); // Oculta credenciales
 
-      // Opciones optimizadas para serverless/Vercel
+      // Opciones optimizadas para serverless/Vercel (reducidas para mayor velocidad)
       const options = {
-         serverSelectionTimeoutMS: 10000, // Timeout para seleccionar servidor
-         socketTimeoutMS: 45000, // Timeout de socket
-         connectTimeoutMS: 10000, // Timeout de conexión inicial
+         serverSelectionTimeoutMS: 5000, // Reducido de 10s a 5s
+         socketTimeoutMS: 30000, // Reducido de 45s a 30s
+         connectTimeoutMS: 5000, // Reducido de 10s a 5s
          maxPoolSize: 1, // Para serverless, usar pool pequeño
          minPoolSize: 1,
          // Habilitar buffering para que espere la conexión antes de ejecutar comandos
          bufferCommands: true, // IMPORTANTE: true para que espere la conexión
+         // Optimizaciones adicionales para serverless
+         retryWrites: true,
+         retryReads: true,
+         // Reducir heartbeat para conexiones más rápidas
+         heartbeatFrequencyMS: 10000,
+         // Timeout más agresivo para operaciones
+         maxIdleTimeMS: 30000,
+         // Write concern optimizado para serverless (más rápido)
+         // w: 1 = solo necesita confirmación de un servidor (más rápido)
+         // j: false = no espera journal write (más rápido en serverless)
+         writeConcern: {
+            w: 1,
+            j: false,
+            wtimeout: 5000 // Timeout de 5 segundos para writes
+         }
       };
 
       // Iniciar conexión
@@ -97,8 +112,8 @@ const connection = async () => {
          console.log('⏳ Esperando que la conexión se complete...');
          await new Promise((resolve, reject) => {
             const timeout = setTimeout(() => {
-               reject(new Error('Connection timeout: MongoDB did not connect within 10 seconds'));
-            }, 10000);
+               reject(new Error('Connection timeout: MongoDB did not connect within 5 seconds'));
+            }, 5000); // Reducido de 10s a 5s
             
             // Si ya está conectado, resolver inmediatamente
             if (mongoose.connection.readyState === 1) {

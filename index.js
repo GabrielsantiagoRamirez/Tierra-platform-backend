@@ -35,7 +35,7 @@ const ensureConnection = async () => {
       await new Promise((resolve, reject) => {
          const timeout = setTimeout(() => {
             reject(new Error('Connection timeout'));
-         }, 10000);
+         }, 5000); // Reducido de 10s a 5s
          
          mongoose.connection.once('connected', () => {
             clearTimeout(timeout);
@@ -81,7 +81,7 @@ const ensureConnection = async () => {
          await new Promise((resolve, reject) => {
             const timeout = setTimeout(() => {
                reject(new Error('Connection not ready after connect()'));
-            }, 2000);
+            }, 3000); // Aumentado ligeramente para dar más tiempo
             
             if (mongoose.connection.readyState === 1) {
                clearTimeout(timeout);

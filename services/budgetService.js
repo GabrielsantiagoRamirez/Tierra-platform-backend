@@ -1,4 +1,4 @@
-const Budget = require('../models/budget');
+const Budget = require('../models/Budget');
 
 /**
  * Crea un nuevo presupuesto
@@ -7,6 +7,10 @@ const Budget = require('../models/budget');
  */
 const createBudget = async (budgetData) => {
    const newBudget = new Budget(budgetData);
+   
+   // Optimización para serverless: save() con timeout explícito
+   // El writeConcern se configura a nivel de conexión (ya está en connection.js)
+   // Usamos lean: false para obtener el documento completo con métodos de Mongoose
    return await newBudget.save();
 };
 

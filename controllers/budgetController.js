@@ -4,22 +4,32 @@ const { normalizeBudgetData } = require('../utils/transformers');
 
 
 const createBudget = async (req, res) => {
+   const startTime = Date.now();
+   
    try {
+      console.log('📝 [CREATE] Iniciando creación de presupuesto...');
+      
       // Normalizar datos (acepta snake_case y camelCase)
       const normalizedData = normalizeBudgetData(req.body);
+      console.log('✅ [CREATE] Datos normalizados en', Date.now() - startTime, 'ms');
       
       // Validar datos
       const validation = validateBudgetCreate(normalizedData);
       if (!validation.isValid) {
+         console.log('❌ [CREATE] Validación fallida:', validation.errors);
          return res.status(400).json({
             status: 'error',
             message: 'Validation failed',
             errors: validation.errors
          });
       }
+      console.log('✅ [CREATE] Validación exitosa en', Date.now() - startTime, 'ms');
 
       // Crear presupuesto usando el servicio (ya normalizado)
+      const saveStartTime = Date.now();
       const saved = await budgetService.createBudget(normalizedData);
+      console.log('✅ [CREATE] Presupuesto guardado en', Date.now() - saveStartTime, 'ms');
+      console.log('✅ [CREATE] Total tiempo:', Date.now() - startTime, 'ms');
 
       return res.status(201).json({
          status: 'success',
@@ -27,6 +37,10 @@ const createBudget = async (req, res) => {
       });
 
    } catch (error) {
+      console.error('❌ [CREATE] Error:', error.message);
+      console.error('❌ [CREATE] Stack:', error.stack);
+      console.error('❌ [CREATE] Tiempo total antes del error:', Date.now() - startTime, 'ms');
+      
       return res.status(500).json({
          status: 'error',
          message: 'Error creating budget',
