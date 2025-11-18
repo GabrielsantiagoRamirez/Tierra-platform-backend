@@ -20,24 +20,42 @@ if (!uri) {
 
 
 
-// Función para conectar a MongoDB
+// Función para conectar a MongoDB (optimizada para serverless)
 const connection = async () => {
    try {
-      console.log('🔄 Intentando conectar a MongoDB...');
-      console.log('📍 URI de conexión:', uri.replace(/\/\/[^:]+:[^@]+@/, '//***:***@')); // Oculta credenciales
-      
-      // Debug: mostrar si las variables de entorno se están leyendo
-      if (process.env.MONGODB_USER) {
-         console.log('✅ Variables de entorno detectadas desde .env');
-      } else {
-         console.log('⚠️  Usando valores por defecto (no se encontró .env o variables)');
+      // Si ya hay una conexión activa, reutilizarla (importante para serverless)
+      if (mongoose.connection.readyState === 1) {
+         console.log('✅ Reutilizando conexión existente a MongoDB');
+         return mongoose.connection;
       }
 
-    console.log("🔍 URI REAL PARA CONEXIÓN:");
-    console.log(uri);
+      // Si está conectando, esperar a que termine
+      if (mongoose.connection.readyState === 2) {
+         console.log('⏳ Esperando conexión en progreso...');
+         await new Promise((resolve) => {
+            mongoose.connection.once('connected', resolve);
+            mongoose.connection.once('error', resolve);
+         });
+         if (mongoose.connection.readyState === 1) {
+            return mongoose.connection;
+         }
+      }
 
+      console.log('🔄 Intentando conectar a MongoDB...');
+      console.log('📍 URI de conexión:', uri.replace(/\/\/[^:]+:[^@]+@/, '//***:***@')); // Oculta credenciales
 
-      await mongoose.connect(uri);
+      // Opciones optimizadas para serverless/Vercel
+      const options = {
+         serverSelectionTimeoutMS: 5000, // Timeout más corto para fallar rápido
+         socketTimeoutMS: 45000, // Timeout de socket más largo
+         connectTimeoutMS: 10000, // Timeout de conexión
+         maxPoolSize: 1, // Para serverless, usar pool pequeño
+         minPoolSize: 1,
+         bufferMaxEntries: 0, // Deshabilitar buffering (fallar rápido si no hay conexión)
+         bufferCommands: false, // Deshabilitar buffering de comandos
+      };
+
+      await mongoose.connect(uri, options);
 
       // Obtener información de la conexión
       const db = mongoose.connection;

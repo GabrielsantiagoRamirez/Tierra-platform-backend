@@ -3,7 +3,7 @@
  * Contiene la lógica de negocio para los presupuestos
  */
 
-const Budget = require('../models/Budget');
+const Budget = require('../models/budget');
 
 /**
  * Crea un nuevo presupuesto
