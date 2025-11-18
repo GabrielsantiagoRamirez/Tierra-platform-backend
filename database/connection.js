@@ -3,19 +3,33 @@ const mongoose = require('mongoose');
 // URI de conexión - Usa MONGODB_URI desde .env (RECOMENDADO)
 // O puedes usar variables individuales si prefieres
 let uri = process.env.MONGODB_URI;
+let database = ''; // Variable para logging
 
 if (!uri) {
    // Si no hay URI completa, construir desde variables individuales
    const user = process.env.MONGODB_USER || 'pablomelo0420';
    const password = process.env.MONGODB_PASSWORD || 'pablomelo0420';
    const cluster = process.env.MONGODB_CLUSTER || 'tierradb.beaz9os.mongodb.net';
-   const database = process.env.MONGODB_DATABASE || '';
+   database = process.env.MONGODB_DATABASE || '';
    const appName = process.env.MONGODB_APP_NAME || 'TierraDB';
    
    // Codificar la contraseña para manejar caracteres especiales
    const encodedPassword = encodeURIComponent(password);
    const dbPath = database ? `/${database}` : '';
    uri = `mongodb+srv://${user}:${encodedPassword}@${cluster}${dbPath}?appName=${appName}`;
+   
+   // Log para debugging (sin mostrar credenciales)
+   console.log('🔧 Construyendo URI desde variables individuales:');
+   console.log(`   📦 Base de datos: ${database || '(no especificada - usará default)'}`);
+   console.log(`   🌐 Cluster: ${cluster}`);
+} else {
+   // Si hay URI completa, intentar extraer la base de datos para logging
+   const dbMatch = uri.match(/\/([^?]+)\?/);
+   if (dbMatch) {
+      database = dbMatch[1];
+   }
+   console.log('🔧 Usando MONGODB_URI completa');
+   console.log(`   📦 Base de datos en URI: ${database || '(no especificada en URI)'}`);
 }
 
 
@@ -70,7 +84,12 @@ const connection = async () => {
       };
 
       // Iniciar conexión
+      // IMPORTANTE: Si la URI incluye la base de datos, Mongoose la usará automáticamente
       await mongoose.connect(uri, options);
+      
+      // Log adicional para verificar la base de datos
+      console.log('🔍 Verificando base de datos después de conectar...');
+      console.log(`   📦 Base de datos en URI: ${database || 'no especificada'}`);
 
       // IMPORTANTE: mongoose.connect() puede resolverse antes de que la conexión esté lista
       // Necesitamos esperar explícitamente el evento 'connected'
@@ -110,7 +129,8 @@ const connection = async () => {
 
       console.log('✅ Conexión exitosa a MongoDB Atlas');
       console.log('📊 Información de la base de datos:');
-      console.log(`   🗄️  Base de datos: ${dbName}`);
+      console.log(`   🗄️  Base de datos conectada: ${dbName}`);
+      console.log(`   📦 Base de datos esperada: ${database || '(no especificada)'}`);
       console.log(`   🌐 Host: ${host}`);
       console.log(`   🔌 Puerto: ${port}`);
       console.log(`   🔗 Estado: ${db.readyState === 1 ? 'Conectado' : 'Desconectado'}`);
@@ -119,6 +139,12 @@ const connection = async () => {
       // Verificar que realmente está conectado
       if (db.readyState !== 1) {
          throw new Error(`Connection not ready. Current state: ${db.readyState}`);
+      }
+
+      // Verificar que la base de datos sea la correcta
+      if (database && dbName !== database) {
+         console.warn(`⚠️  ADVERTENCIA: Base de datos conectada (${dbName}) no coincide con la esperada (${database})`);
+         console.warn(`   Esto puede causar que los documentos se guarden en la base de datos incorrecta`);
       }
 
       // Log cuando se desconecte
