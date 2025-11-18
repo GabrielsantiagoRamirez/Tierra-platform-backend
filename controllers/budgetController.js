@@ -2,9 +2,7 @@ const budgetService = require('../services/budgetService');
 const { validateBudgetCreate } = require('../utils/validators');
 const { normalizeBudgetData } = require('../utils/transformers');
 
-/**
- * Controlador para crear un nuevo presupuesto
- */
+
 const createBudget = async (req, res) => {
    try {
       // Normalizar datos (acepta snake_case y camelCase)
@@ -38,9 +36,7 @@ const createBudget = async (req, res) => {
 };
 
 
-/**
- * Controlador para listar presupuestos con paginación
- */
+
 const listBudgets = async (req, res) => {
    try {
       const { validatePage } = require('../utils/validators');
@@ -69,9 +65,7 @@ const listBudgets = async (req, res) => {
 };
 
 
-/**
- * Controlador para obtener un presupuesto por ID
- */
+
 const getBudgetByid = async (req, res) => {
    try {
       const budget = await budgetService.getBudgetById(req.params.id);
@@ -94,13 +88,12 @@ const getBudgetByid = async (req, res) => {
 };
 
 
-/**
- * Controlador para actualizar un presupuesto
- */
+
 const updateBudget = async (req, res) => {
    try {
       // Normalizar datos (acepta snake_case y camelCase)
-      const normalizedData = normalizeBudgetData(req.body);
+      // isUpdate=true para que solo incluya campos que vienen en el request
+      const normalizedData = normalizeBudgetData(req.body, true);
       
       const updated = await budgetService.updateBudget(req.params.id, normalizedData);
 
@@ -124,9 +117,6 @@ const updateBudget = async (req, res) => {
    }
 };
 
-/**
- * Controlador para eliminar un presupuesto
- */
 const deleteBudget = async (req, res) => {
    try {
       const deleted = await budgetService.deleteBudget(req.params.id);

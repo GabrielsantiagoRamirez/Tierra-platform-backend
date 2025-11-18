@@ -42,30 +42,60 @@ const snakeToCamel = (obj) => {
 /**
  * Normaliza los datos del request aceptando tanto snake_case como camelCase
  * @param {Object} data - Datos del request
+ * @param {Boolean} isUpdate - Si es true, solo incluye campos que vienen en el request (para updates)
  * @returns {Object} Datos normalizados en camelCase
  */
-const normalizeBudgetData = (data) => {
+const normalizeBudgetData = (data, isUpdate = false) => {
    const normalized = snakeToCamel(data);
+   const result = {};
    
-   return {
-      clientName: normalized.clientName || normalized.client_name,
-      clientEmail: normalized.clientEmail || normalized.client_email,
-      clientPhone: normalized.clientPhone || normalized.client_phone || null,
-      clientAddress: normalized.clientAddress || normalized.client_address || null,
-      projectName: normalized.projectName || normalized.project_name,
-      projectDescription: normalized.projectDescription || normalized.project_description || null,
-      workType: normalized.workType || normalized.work_type,
-      items: normalizeBudgetItems(normalized.items || []),
-      taxRate: normalized.taxRate || normalized.tax_rate || null,
-      contingencyPercentage: normalized.contingencyPercentage || normalized.contingency_percentage || null,
-      administrationPercentage: normalized.administrationPercentage || normalized.administration_percentage || null,
-      profitPercentage: normalized.profitPercentage || normalized.profit_percentage || null,
-      status: normalized.status || 'draft',
-      notes: normalized.notes || null,
-      validUntil: normalized.validUntil || normalized.valid_until 
-         ? new Date(normalized.validUntil || normalized.valid_until) 
-         : null
+   // Función helper para agregar campo solo si existe
+   const addField = (camelKey, snakeKey, defaultValue = undefined) => {
+      const value = normalized[camelKey] !== undefined ? normalized[camelKey] : 
+                    (normalized[snakeKey] !== undefined ? normalized[snakeKey] : defaultValue);
+      
+      if (isUpdate) {
+         // En update, solo agregar si el campo viene en el request
+         if (normalized[camelKey] !== undefined || normalized[snakeKey] !== undefined) {
+            result[camelKey] = value;
+         }
+      } else {
+         // En create, usar valores por defecto
+         result[camelKey] = value !== undefined ? value : defaultValue;
+      }
    };
+   
+   // Campos normales
+   addField('clientName', 'client_name');
+   addField('clientEmail', 'client_email');
+   addField('clientPhone', 'client_phone', null);
+   addField('clientAddress', 'client_address', null);
+   addField('projectName', 'project_name');
+   addField('projectDescription', 'project_description', null);
+   addField('workType', 'work_type', isUpdate ? undefined : 'other');
+   addField('taxRate', 'tax_rate', null);
+   addField('contingencyPercentage', 'contingency_percentage', null);
+   addField('administrationPercentage', 'administration_percentage', null);
+   addField('profitPercentage', 'profit_percentage', null);
+   addField('status', 'status', isUpdate ? undefined : 'draft');
+   addField('notes', 'notes', null);
+   
+   // ValidUntil necesita conversión a Date
+   if (normalized.validUntil !== undefined || normalized.valid_until !== undefined) {
+      const validUntilValue = normalized.validUntil || normalized.valid_until;
+      result.validUntil = validUntilValue ? new Date(validUntilValue) : null;
+   } else if (!isUpdate) {
+      result.validUntil = null;
+   }
+   
+   // Items: normalizar solo si vienen
+   if (normalized.items !== undefined || (data.items !== undefined && !normalized.items)) {
+      result.items = normalizeBudgetItems(normalized.items || data.items || []);
+   } else if (!isUpdate) {
+      result.items = [];
+   }
+   
+   return result;
 };
 
 /**

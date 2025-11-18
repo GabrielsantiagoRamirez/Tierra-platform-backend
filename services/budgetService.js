@@ -1,8 +1,3 @@
-/**
- * Servicio de Presupuestos
- * Contiene la lógica de negocio para los presupuestos
- */
-
 const Budget = require('../models/budget');
 
 /**
@@ -36,17 +31,56 @@ const getBudgetById = async (id) => {
 
 /**
  * Actualiza un presupuesto
+
  * @param {String} id - ID del presupuesto (_id de MongoDB)
  * @param {Object} updateData - Datos a actualizar (ya normalizados)
  * @returns {Promise<Object|null>} Presupuesto actualizado o null
  */
 const updateBudget = async (id, updateData) => {
-   // Agregar fecha de actualización
-   updateData.updatedAt = new Date();
+   // Obtener el presupuesto actual
+   const existingBudget = await Budget.findById(id);
    
+   if (!existingBudget) {
+      return null;
+   }
+
+   // Crear objeto de actualización solo con los campos que vienen en updateData
+   const updateFields = {};
+   
+   // Lista de campos que se pueden actualizar (excluyendo items, createdAt, _id)
+   const updatableFields = [
+      'clientName', 'clientEmail', 'clientPhone', 'clientAddress',
+      'projectName', 'projectDescription', 'workType',
+      'taxRate', 'contingencyPercentage', 'administrationPercentage', 'profitPercentage',
+      'status', 'notes', 'validUntil'
+   ];
+
+   // Solo actualizar los campos que vienen en updateData (y no son undefined/null vacío)
+   updatableFields.forEach(field => {
+      if (updateData.hasOwnProperty(field) && updateData[field] !== undefined) {
+         // Permitir null explícito para limpiar campos
+         updateFields[field] = updateData[field];
+      }
+   });
+
+   // Manejar items de forma especial: agregar a los existentes
+   if (updateData.items && Array.isArray(updateData.items) && updateData.items.length > 0) {
+      // Agregar los nuevos items a los existentes
+      const existingItems = existingBudget.items || [];
+      const newItems = updateData.items;
+      
+      // Combinar items existentes con nuevos
+      updateFields.items = [...existingItems, ...newItems];
+   }
+   // Si no se envía items, mantener los existentes (no hacer nada)
+
+   // Siempre actualizar la fecha de modificación
+   updateFields.updatedAt = new Date();
+
+   // Actualizar el presupuesto
    return await Budget.findByIdAndUpdate(
       id,
-      updateData,
+      { $set: updateFields },
       { new: true }
    );
 };
