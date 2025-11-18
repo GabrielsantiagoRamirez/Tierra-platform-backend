@@ -1,6 +1,6 @@
 const { Schema, model } = require("mongoose");
 const mongoosePaginate = require ("mongoose-paginate-v2");
-const budgetItemSchema = require("./BudgetItem");
+const budgetItemSchema = require("./budgetItem");
 
 const budgetSchema = new Schema({
     clientName:{
