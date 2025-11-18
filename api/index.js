@@ -74,9 +74,31 @@ const ensureConnection = async () => {
 
    try {
       await connectionPromise;
-      // Verificar que la conexión esté realmente lista
+      // La función connection() ahora garantiza que la conexión esté lista
+      // pero verificamos por seguridad
       if (mongoose.connection.readyState !== 1) {
-         throw new Error('Connection not ready after connect()');
+         // Esperar un poco más si aún no está lista
+         await new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+               reject(new Error('Connection not ready after connect()'));
+            }, 2000);
+            
+            if (mongoose.connection.readyState === 1) {
+               clearTimeout(timeout);
+               resolve();
+               return;
+            }
+            
+            mongoose.connection.once('connected', () => {
+               clearTimeout(timeout);
+               resolve();
+            });
+            
+            mongoose.connection.once('error', (err) => {
+               clearTimeout(timeout);
+               reject(err);
+            });
+         });
       }
       isConnecting = false;
    } catch (err) {

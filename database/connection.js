@@ -32,12 +32,26 @@ const connection = async () => {
       // Si está conectando, esperar a que termine
       if (mongoose.connection.readyState === 2) {
          console.log('⏳ Esperando conexión en progreso...');
-         await new Promise((resolve) => {
-            mongoose.connection.once('connected', resolve);
-            mongoose.connection.once('error', resolve);
+         await new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+               reject(new Error('Connection timeout: Waiting for existing connection'));
+            }, 10000);
+            
+            mongoose.connection.once('connected', () => {
+               clearTimeout(timeout);
+               resolve();
+            });
+            
+            mongoose.connection.once('error', (err) => {
+               clearTimeout(timeout);
+               reject(err);
+            });
          });
+         
          if (mongoose.connection.readyState === 1) {
             return mongoose.connection;
+         } else {
+            throw new Error('Connection failed after waiting');
          }
       }
 
@@ -56,7 +70,38 @@ const connection = async () => {
          bufferCommands: true, // IMPORTANTE: true para que espere la conexión
       };
 
+      // Iniciar conexión
       await mongoose.connect(uri, options);
+
+      // IMPORTANTE: mongoose.connect() puede resolverse antes de que la conexión esté lista
+      // Necesitamos esperar explícitamente el evento 'connected'
+      if (mongoose.connection.readyState !== 1) {
+         console.log('⏳ Esperando que la conexión se complete...');
+         await new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+               reject(new Error('Connection timeout: MongoDB did not connect within 10 seconds'));
+            }, 10000);
+            
+            // Si ya está conectado, resolver inmediatamente
+            if (mongoose.connection.readyState === 1) {
+               clearTimeout(timeout);
+               resolve();
+               return;
+            }
+            
+            // Esperar el evento 'connected'
+            mongoose.connection.once('connected', () => {
+               clearTimeout(timeout);
+               resolve();
+            });
+            
+            // Si hay error, rechazar
+            mongoose.connection.once('error', (err) => {
+               clearTimeout(timeout);
+               reject(err);
+            });
+         });
+      }
 
       // Obtener información de la conexión
       const db = mongoose.connection;
@@ -72,6 +117,11 @@ const connection = async () => {
       console.log(`   🔗 Estado: ${db.readyState === 1 ? 'Conectado' : 'Desconectado'}`);
       console.log(`   ⏰ Timestamp: ${new Date().toLocaleString()}`);
 
+      // Verificar que realmente está conectado
+      if (db.readyState !== 1) {
+         throw new Error(`Connection not ready. Current state: ${db.readyState}`);
+      }
+
       // Log cuando se desconecte
       db.on('disconnected', () => {
          console.log('❌ Desconectado de MongoDB Atlas');
@@ -86,6 +136,8 @@ const connection = async () => {
       db.on('error', (err) => {
          console.error('💥 Error en la conexión de MongoDB:', err);
       });
+
+      return mongoose.connection;
 
    } catch (err) {
       console.error('❌ Error al conectar a MongoDB Atlas:', err);
@@ -104,9 +156,8 @@ const connection = async () => {
          console.error('   4. Verifica que la contraseña no tenga caracteres especiales sin codificar');
       }
       
-      // No lanzar el error para que el servidor pueda seguir funcionando
-      // (opcional: puedes cambiar esto si prefieres que la app se detenga)
-      // throw err;
+      // Lanzar el error para que se maneje correctamente en el middleware
+      throw err;
    }
 };
 
