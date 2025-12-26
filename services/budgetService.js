@@ -1,4 +1,4 @@
-const Budget = require('../models/Budget');
+const Budget = require('../models/Budget.js');
 
 /**
  * Crea un nuevo presupuesto
