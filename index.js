@@ -138,9 +138,11 @@ if (isVercel) {
 
 // RUTAS de la aplicación
 const budgetRoutes = require('./routes/budgetRoutes');
+const userRoutes = require('./routes/userRoutes');
 
 // Registrar rutas
 app.use('/api/budget', budgetRoutes);
+app.use('/api/user', userRoutes);
 
 // Ruta de prueba
 app.get("/test", (req, res) => {
@@ -154,7 +156,8 @@ app.get("/", (req, res) => {
         status: "running",
         endpoints: {
             test: "/test",
-            budgets: "/api/budget"
+            budgets: "/api/budget",
+            users: "/api/user"
         }
     });
 });

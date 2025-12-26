@@ -1,12 +1,4 @@
-/**
- * Validadores para los datos de entrada
- */
 
-/**
- * Valida los campos requeridos para crear un presupuesto
- * @param {Object} data - Datos a validar
- * @returns {Object} { isValid: boolean, errors: Array }
- */
 const validateBudgetCreate = (data) => {
    const errors = [];
    
@@ -54,21 +46,13 @@ const validateBudgetCreate = (data) => {
    };
 };
 
-/**
- * Valida que un email tenga formato válido
- * @param {String} email - Email a validar
- * @returns {Boolean}
- */
+
 const isValidEmail = (email) => {
    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
    return emailRegex.test(email);
 };
 
-/**
- * Valida que un número de página sea válido
- * @param {*} page - Página a validar (puede ser undefined, null, string o number)
- * @returns {Object} { isValid: boolean, page: number, error: string }
- */
+
 const validatePage = (page) => {
    // Si no se proporciona página, usar página 1 por defecto
    if (page === undefined || page === null || page === '') {
@@ -97,9 +81,80 @@ const validatePage = (page) => {
    };
 };
 
+const validateUserRegister = (data) => {
+   const errors = [];
+   
+   if (!data.name) {
+      errors.push('name is required');
+   }
+   
+   if (!data.lastname) {
+      errors.push('lastname is required');
+   }
+   
+   if (!data.email) {
+      errors.push('email is required');
+   } else if (!isValidEmail(data.email)) {
+      errors.push('email must be a valid email');
+   }
+   
+   if (!data.password) {
+      errors.push('password is required');
+   } else if (data.password.length < 6) {
+      errors.push('password must be at least 6 characters');
+   }
+   
+   if (!data.type) {
+      errors.push('type is required');
+   }
+   
+   if (!data.phone) {
+      errors.push('phone is required');
+   } else if (isNaN(data.phone)) {
+      errors.push('phone must be a valid number');
+   }
+   
+   if (!data.city) {
+      errors.push('city is required');
+   }
+   
+   if (!data.dni) {
+      errors.push('dni is required');
+   } else if (isNaN(data.dni)) {
+      errors.push('dni must be a valid number');
+   }
+   
+   return {
+      isValid: errors.length === 0,
+      errors
+   };
+};
+
+
+const validateUserLogin = (data) => {
+   const errors = [];
+   
+   if (!data.email) {
+      errors.push('email is required');
+   } else if (!isValidEmail(data.email)) {
+      errors.push('email must be a valid email');
+   }
+   
+   if (!data.password) {
+      errors.push('password is required');
+   }
+   
+   return {
+      isValid: errors.length === 0,
+      errors
+   };
+};
+
 module.exports = {
    validateBudgetCreate,
    isValidEmail,
-   validatePage
+   validatePage,
+   validateUserRegister,
+   validateUserLogin
 };
 

@@ -128,9 +128,54 @@ const normalizeBudgetItems = (items) => {
    });
 };
 
+/**
+ * Normaliza los datos del usuario aceptando tanto snake_case como camelCase
+ * @param {Object} data - Datos del request
+ * @param {Boolean} isUpdate - Si es true, solo incluye campos que vienen en el request (para updates)
+ * @returns {Object} Datos normalizados en camelCase
+ */
+const normalizeUserData = (data, isUpdate = false) => {
+   // Crear una copia sin id y _id para evitar conflictos
+   const dataWithoutId = { ...data };
+   delete dataWithoutId.id;
+   delete dataWithoutId._id;
+   
+   const normalized = snakeToCamel(dataWithoutId);
+   const result = {};
+   
+   // Función helper para agregar campo solo si existe
+   const addField = (camelKey, snakeKey, defaultValue = undefined) => {
+      const value = normalized[camelKey] !== undefined ? normalized[camelKey] : 
+                    (normalized[snakeKey] !== undefined ? normalized[snakeKey] : defaultValue);
+      
+      if (isUpdate) {
+         // En update, solo agregar si el campo viene en el request
+         if (normalized[camelKey] !== undefined || normalized[snakeKey] !== undefined) {
+            result[camelKey] = value;
+         }
+      } else {
+         // En create, usar valores por defecto
+         result[camelKey] = value !== undefined ? value : defaultValue;
+      }
+   };
+   
+   // Campos normales
+   addField('type', 'type', null);
+   addField('name', 'name');
+   addField('lastname', 'lastname');
+   addField('email', 'email');
+   addField('password', 'password');
+   addField('phone', 'phone', null);
+   addField('city', 'city', null);
+   addField('dni', 'dni', null);
+   
+   return result;
+};
+
 module.exports = {
    snakeToCamel,
    normalizeBudgetData,
-   normalizeBudgetItems
+   normalizeBudgetItems,
+   normalizeUserData
 };
 
