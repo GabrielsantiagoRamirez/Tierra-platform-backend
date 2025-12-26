@@ -1,8 +1,8 @@
 const { Schema, model } = require("mongoose");
 const mongoosePaginate = require("mongoose-paginate-v2");
 
-// No definir campo 'id' - siempre usar _id de MongoDB
 const tareaSchema = new Schema({
+    _id: { type: Schema.Types.ObjectId, auto: true },
     name: {
         type: String,
         required: true
@@ -17,7 +17,8 @@ const tareaSchema = new Schema({
     },
     state: {
         type: String,
-        default: null
+        enum: ['pendiente', 'en_proceso', 'finalizado'],
+        default: 'pendiente'
     },
     duration: {
         type: Number,

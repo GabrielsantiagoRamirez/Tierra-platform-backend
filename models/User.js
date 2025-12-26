@@ -2,10 +2,11 @@ const { Schema, model } = require("mongoose");
 const mongoosePaginate = require("mongoose-paginate-v2");
 const bcrypt = require("bcrypt");
 
-// No definir campo 'id' - siempre usar _id de MongoDB
+
 const userSchema = new Schema({
     type: {
         type: String,
+        enum: ['admin', 'master'],
         required: true
     },
     name: {
@@ -26,7 +27,7 @@ const userSchema = new Schema({
     password: {
         type: String,
         required: true,
-        select: false // No incluir password por defecto en las consultas
+        select: false
     },
     phone: {
         type: Number,
@@ -52,7 +53,6 @@ const userSchema = new Schema({
     strict: true, // Ignorar campos no definidos en el schema
 });
 
-// Hook pre-save: encriptar contraseña antes de guardar
 userSchema.pre('save', async function(next) {
     // Solo encriptar si la contraseña fue modificada o es nueva
     if (!this.isModified('password')) {
@@ -69,7 +69,7 @@ userSchema.pre('save', async function(next) {
     }
 });
 
-// Hook pre-save: eliminar campo 'id' si existe
+
 userSchema.pre('save', function(next) {
     if (this.id !== undefined) {
         this.set('id', undefined, { strict: false });
@@ -78,16 +78,15 @@ userSchema.pre('save', function(next) {
     next();
 });
 
-// Método para comparar contraseñas
 userSchema.methods.comparePassword = async function(candidatePassword) {
     return await bcrypt.compare(candidatePassword, this.password);
 };
 
-// Transformar a snake_case para compatibilidad con Flutter
+
 userSchema.set('toJSON', {
     transform: function(doc, ret) {
         return {
-            id: ret._id.toString(), // Usar _id de MongoDB como id
+            id: ret._id.toString(),
             type: ret.type,
             name: ret.name,
             lastname: ret.lastname,
@@ -97,7 +96,6 @@ userSchema.set('toJSON', {
             dni: ret.dni,
             created_at: ret.createdAt ? ret.createdAt.toISOString() : null,
             updated_at: ret.updatedAt ? ret.updatedAt.toISOString() : null
-            // No incluir password en el JSON
         };
     }
 });

@@ -15,9 +15,9 @@ const generateToken = (user) => {
       email: user.email
    };
    
-   // Opciones del token (expira en 7 días)
+   // Opciones del token (expira en 1 año - 365 días)
    const options = {
-      expiresIn: '7d'
+      expiresIn: '365d'
    };
    
    return jwt.sign(payload, secret, options);

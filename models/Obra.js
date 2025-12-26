@@ -1,6 +1,6 @@
 const { Schema, model } = require("mongoose");
 const mongoosePaginate = require("mongoose-paginate-v2");
-const tareaSchema = require("./Tarea");
+const Tarea = require("./Tarea").Model;
 
 // No definir campo 'id' - siempre usar _id de MongoDB
 const obraSchema = new Schema({
@@ -21,8 +21,15 @@ const obraSchema = new Schema({
         default: null
     },
     tareas: {
-        type: [tareaSchema],
-        default: []
+        type: [Schema.Types.ObjectId],
+        ref: 'Tarea',
+        required: true,
+        validate: {
+            validator: function(v) {
+                return Array.isArray(v) && v.length > 0;
+            },
+            message: 'Obra must have at least one tarea'
+        }
     },
     responsable: {
         type: Schema.Types.ObjectId,
@@ -73,15 +80,47 @@ obraSchema.set('toJSON', {
             description: ret.description,
             location: ret.location,
             city: ret.city,
-            tareas: ret.tareas ? ret.tareas.map(tarea => ({
-                id: tarea._id ? tarea._id.toString() : null,
-                name: tarea.name,
-                description: tarea.description,
-                evidences: tarea.evidences || [],
-                state: tarea.state,
-                duration: tarea.duration
-            })) : [],
-            responsable: ret.responsable ? ret.responsable.toString() : null,
+            tareas: ret.tareas ? ret.tareas.map(tarea => {
+                // Si está poblado, tarea es un documento de Mongoose
+                if (tarea && typeof tarea === 'object') {
+                    // Si es un documento de Mongoose, usar toJSON() para aplicar su transformador
+                    if (tarea.toJSON && typeof tarea.toJSON === 'function') {
+                        return tarea.toJSON();
+                    }
+                    
+                    // Si tiene _id, es un documento poblado pero sin método toJSON
+                    if (tarea._id) {
+                        const tareaObj = tarea.toObject ? tarea.toObject() : tarea;
+                        return {
+                            id: tareaObj._id.toString(),
+                            name: tareaObj.name || null,
+                            description: tareaObj.description || null,
+                            evidences: Array.isArray(tareaObj.evidences) ? tareaObj.evidences : [],
+                            state: tareaObj.state || null,
+                            duration: tareaObj.duration !== undefined ? tareaObj.duration : null,
+                            created_at: tareaObj.createdAt ? (typeof tareaObj.createdAt.toISOString === 'function' ? tareaObj.createdAt.toISOString() : tareaObj.createdAt) : null,
+                            updated_at: tareaObj.updatedAt ? (typeof tareaObj.updatedAt.toISOString === 'function' ? tareaObj.updatedAt.toISOString() : tareaObj.updatedAt) : null
+                        };
+                    }
+                    
+                    // Si ya está transformado (tiene id y name), usarlo directamente
+                    if (tarea.id && tarea.name !== undefined) {
+                        return tarea;
+                    }
+                }
+                // Si no está poblado, es solo un ID (ObjectId)
+                return {
+                    id: tarea ? tarea.toString() : null,
+                    name: null,
+                    description: null,
+                    evidences: [],
+                    state: null,
+                    duration: null,
+                    created_at: null,
+                    updated_at: null
+                };
+            }) : [],
+            responsable: ret.responsable ? (typeof ret.responsable === 'object' && ret.responsable._id ? ret.responsable._id.toString() : ret.responsable.toString()) : null,
             costo: ret.costo,
             created_at: ret.createdAt ? ret.createdAt.toISOString() : null,
             updated_at: ret.updatedAt ? ret.updatedAt.toISOString() : null

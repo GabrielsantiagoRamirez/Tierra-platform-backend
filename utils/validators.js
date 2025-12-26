@@ -104,8 +104,8 @@ const validateUserRegister = (data) => {
       errors.push('password must be at least 6 characters');
    }
    
-   if (!data.type) {
-      errors.push('type is required');
+   if (!data.type === 'admin' || !data.type === 'master') {
+      errors.push('type is required only for admin or master');
    }
    
    if (!data.phone) {

@@ -139,10 +139,12 @@ if (isVercel) {
 // RUTAS de la aplicación
 const budgetRoutes = require('./routes/budgetRoutes');
 const userRoutes = require('./routes/userRoutes');
+const masterRoutes = require('./routes/masterRoutes');
 
 // Registrar rutas
 app.use('/api/budget', budgetRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/master', masterRoutes);
 
 // Ruta de prueba
 app.get("/test", (req, res) => {
