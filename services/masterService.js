@@ -3,16 +3,27 @@ const User = require('../models/User.js');
 const Tarea = require('../models/Tarea.js').Model;
 
 
-const getResponsable = async (userId) => {
-   // Buscar el usuario
+const getResponsable = async (userType, userId) => {
+   // Buscar el usuario autenticado
    const user = await User.findById(userId);
    
    if (!user) {
       return null;
    }
    
-   // Buscar todas las obras donde este usuario es responsable y poblar tareas
-   const obras = await Obra.find({ responsable: userId }).populate('tareas');
+   let obras;
+   
+   // Lógica condicional según tipo de usuario
+   if (userType === 'admin') {
+      // Si es admin: traer TODAS las obras
+      obras = await Obra.find({}).populate('tareas').populate('responsable');
+   } else if (userType === 'master') {
+      // Si es master: traer solo las obras donde él es responsable
+      obras = await Obra.find({ responsable: userId }).populate('tareas');
+   } else {
+      // Tipo de usuario no válido
+      throw new Error('Invalid user type');
+   }
    
    // Retornar usuario con sus obras (que ya incluyen las tareas)
    return {

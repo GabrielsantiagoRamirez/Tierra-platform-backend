@@ -6,18 +6,23 @@ const getResponsable = async (req, res) => {
    const startTime = Date.now();
    
    try {
-      console.log('👤 [MASTER] Obteniendo responsable...');
+      console.log('👤 [MASTER/ADMIN] Obteniendo responsable...');
       
-      const { userId } = req.params;
+      // Obtener usuario autenticado del middleware
+      const authenticatedUser = req.user;
       
-      if (!userId) {
-         return res.status(400).json({
+      if (!authenticatedUser) {
+         return res.status(401).json({
             status: 'error',
-            message: 'User ID is required'
+            message: 'Authentication required'
          });
       }
       
-      const result = await masterService.getResponsable(userId);
+      // Pasar tipo de usuario y su ID al servicio
+      const result = await masterService.getResponsable(
+         authenticatedUser.type, 
+         authenticatedUser._id.toString()
+      );
       
       if (!result) {
          return res.status(404).json({
@@ -26,7 +31,7 @@ const getResponsable = async (req, res) => {
          });
       }
       
-      console.log('✅ [MASTER] Responsable obtenido en', Date.now() - startTime, 'ms');
+      console.log('✅ [MASTER/ADMIN] Responsable obtenido en', Date.now() - startTime, 'ms');
       
       return res.status(200).json({
          status: 'success',
@@ -34,8 +39,8 @@ const getResponsable = async (req, res) => {
       });
       
    } catch (error) {
-      console.error('❌ [MASTER] Error:', error.message);
-      console.error('❌ [MASTER] Stack:', error.stack);
+      console.error('❌ [MASTER/ADMIN] Error:', error.message);
+      console.error('❌ [MASTER/ADMIN] Stack:', error.stack);
       
       return res.status(500).json({
          status: 'error',
