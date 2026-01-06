@@ -7,7 +7,7 @@ const check = require("../middleware/authMiddleware");
 
 // Rutas que requieren solo master
 router.get("/responsable/:userId", check.auth, check.adminOrMaster, masterController.getResponsable);
-router.put("/obra/:obraId/tarea/:tareaId/estado", check.auth, check.master, masterController.updateTareaEstado);
+router.put("/obra/:obraId/tarea/:tareaId/estado", check.auth, check.adminOrMaster, masterController.updateTareaEstado);
 router.post("/obra/:obraId/tarea/:tareaId/imagen", check.auth, check.master, masterController.addImagenTarea);
 
 // CRUD Obra (admin o master)
