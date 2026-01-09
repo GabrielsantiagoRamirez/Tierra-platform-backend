@@ -33,15 +33,12 @@ const createTarea = async (obraId, tareaData) => {
    const { state, evidences, observation, ...tareaFields } = tareaData;
    
    // Asegurar que evidences sea array vacío si no viene
+   // La observación NO se guarda en la tarea base, solo en ObraTarea (específica por obra)
    const newTareaData = {
       ...tareaFields,
       evidences: [] // Las evidencias ahora van en ObraTarea
+      // observation NO se incluye aquí, va solo en ObraTarea
    };
-   
-   // Si viene observation en tareaData, agregarlo a la tarea base
-   if (tareaData.observation !== undefined) {
-      newTareaData.observation = tareaData.observation;
-   }
    
    // Crear tarea como documento independiente
    const newTarea = new Tarea(newTareaData);
