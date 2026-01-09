@@ -1,6 +1,6 @@
 const { Schema, model } = require("mongoose");
 const mongoosePaginate = require("mongoose-paginate-v2");
-const budgetItemSchema = require("./BudgetItem.js");
+const budgetItemSchema = require("./BudgetItem");
 
 // No definir campo 'id' - siempre usar _id de MongoDB
 // strict: true ignora campos no definidos en el schema (por defecto)
