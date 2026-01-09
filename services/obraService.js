@@ -11,6 +11,7 @@ const combineTareaWithObraTarea = (tarea, obraTarea) => {
    
    return {
       id: tareaObj._id.toString(),
+      obra_tarea_id: obraTareaObj ? obraTareaObj._id.toString() : null,
       name: tareaObj.name,
       description: tareaObj.description || null,
       evidences: obraTareaObj ? (obraTareaObj.evidences || []) : [],
