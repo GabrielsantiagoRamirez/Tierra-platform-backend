@@ -1,5 +1,26 @@
 const Obra = require('../models/Obra.js');
 const Tarea = require('../models/Tarea.js').Model;
+const ObraTarea = require('../models/ObraTarea.js');
+
+// Función auxiliar para combinar Tarea con ObraTarea
+const combineTareaWithObraTarea = (tarea, obraTarea) => {
+   if (!tarea) return null;
+   
+   const tareaObj = tarea.toObject ? tarea.toObject() : tarea;
+   const obraTareaObj = obraTarea ? (obraTarea.toObject ? obraTarea.toObject() : obraTarea) : null;
+   
+   return {
+      id: tareaObj._id.toString(),
+      name: tareaObj.name,
+      description: tareaObj.description || null,
+      evidences: obraTareaObj ? (obraTareaObj.evidences || []) : [],
+      state: obraTareaObj ? obraTareaObj.state : 'pendiente',
+      duration: tareaObj.duration !== undefined ? tareaObj.duration : null,
+      observation: obraTareaObj ? (obraTareaObj.observation || "") : "",
+      created_at: tareaObj.createdAt ? tareaObj.createdAt.toISOString() : null,
+      updated_at: obraTareaObj && obraTareaObj.updatedAt ? obraTareaObj.updatedAt.toISOString() : (tareaObj.updatedAt ? tareaObj.updatedAt.toISOString() : null)
+   };
+};
 
 const createObra = async (obraData) => {
    const cleanData = { ...obraData };
@@ -38,26 +59,104 @@ const createObra = async (obraData) => {
    const newObra = new Obra(obraDataWithRefs);
    await newObra.save();
    
-   // Retornar la obra con las tareas pobladas
-   // Usar lean: false para mantener los métodos de Mongoose y que funcione el populate correctamente
-   return await Obra.findById(newObra._id)
+   // Crear relaciones ObraTarea para cada tarea
+   const obraTareasPromises = tareasIds.map(tareaId => {
+      return ObraTarea.create({
+         obraId: newObra._id,
+         tareaId: tareaId,
+         state: 'pendiente',
+         evidences: [],
+         observation: ""
+      });
+   });
+   
+   await Promise.all(obraTareasPromises);
+   
+   // Retornar la obra con las tareas pobladas y combinadas con ObraTarea
+   const obra = await Obra.findById(newObra._id)
       .populate('responsable')
       .populate('tareas')
       .lean(false);
+   
+   // Obtener relaciones ObraTarea
+   const obraTareas = await ObraTarea.find({ obraId: newObra._id }).populate('tareaId');
+   const obraTareaMap = {};
+   obraTareas.forEach(ot => {
+      if (ot.tareaId) {
+         obraTareaMap[ot.tareaId._id.toString()] = ot;
+      }
+   });
+   
+   // Combinar tareas con ObraTarea
+   obra.tareas = obra.tareas.map(tarea => {
+      const obraTarea = obraTareaMap[tarea._id.toString()];
+      return combineTareaWithObraTarea(tarea, obraTarea);
+   });
+   
+   return obra;
 };
 
 const listObras = async (page = 1, limit = 10) => {
-   return await Obra.paginate({}, { page, limit, populate: ['responsable', 'tareas'] });
+   const result = await Obra.paginate({}, { page, limit, populate: ['responsable', 'tareas'] });
+   
+   // Para cada obra, combinar tareas con ObraTarea
+   const obrasConTareasCompletas = await Promise.all(result.docs.map(async (obra) => {
+      const obraTareas = await ObraTarea.find({ obraId: obra._id }).populate('tareaId');
+      const obraTareaMap = {};
+      obraTareas.forEach(ot => {
+         if (ot.tareaId) {
+            obraTareaMap[ot.tareaId._id.toString()] = ot;
+         }
+      });
+      
+      obra.tareas = obra.tareas.map(tarea => {
+         const obraTarea = obraTareaMap[tarea._id.toString()];
+         return combineTareaWithObraTarea(tarea, obraTarea);
+      });
+      
+      return obra;
+   }));
+   
+   return {
+      ...result,
+      docs: obrasConTareasCompletas
+   };
 };
 
 const getObraById = async (id) => {
-   return await Obra.findById(id).populate(['responsable', 'tareas']);
+   const obra = await Obra.findById(id).populate(['responsable', 'tareas']);
+   
+   if (!obra) {
+      return null;
+   }
+   
+   // Obtener relaciones ObraTarea
+   const obraTareas = await ObraTarea.find({ obraId: id }).populate('tareaId');
+   const obraTareaMap = {};
+   obraTareas.forEach(ot => {
+      if (ot.tareaId) {
+         obraTareaMap[ot.tareaId._id.toString()] = ot;
+      }
+   });
+   
+   // Combinar tareas con ObraTarea
+   obra.tareas = obra.tareas.map(tarea => {
+      const obraTarea = obraTareaMap[tarea._id.toString()];
+      return combineTareaWithObraTarea(tarea, obraTarea);
+   });
+   
+   return obra;
 };
 
 const updateObra = async (id, updateData) => {
    const cleanData = { ...updateData };
    delete cleanData.id;
    delete cleanData._id;
+   
+   const obra = await Obra.findById(id);
+   if (!obra) {
+      return null;
+   }
    
    // Si se actualizan tareas, validar que sean IDs existentes
    if (cleanData.tareas && Array.isArray(cleanData.tareas)) {
@@ -77,14 +176,66 @@ const updateObra = async (id, updateData) => {
       }
       
       cleanData.tareas = tareasIds;
+      
+      // Obtener tareas actuales
+      const tareasActuales = obra.tareas.map(t => t.toString());
+      const tareasNuevas = tareasIds.map(t => t.toString());
+      
+      // Encontrar tareas a eliminar (están en actuales pero no en nuevas)
+      const tareasAEliminar = tareasActuales.filter(t => !tareasNuevas.includes(t));
+      
+      // Encontrar tareas a agregar (están en nuevas pero no en actuales)
+      const tareasAAgregar = tareasNuevas.filter(t => !tareasActuales.includes(t));
+      
+      // Eliminar relaciones ObraTarea para tareas removidas
+      if (tareasAEliminar.length > 0) {
+         await ObraTarea.deleteMany({ 
+            obraId: id, 
+            tareaId: { $in: tareasAEliminar } 
+         });
+      }
+      
+      // Crear relaciones ObraTarea para tareas nuevas
+      if (tareasAAgregar.length > 0) {
+         const nuevasObraTareas = tareasAAgregar.map(tareaId => ({
+            obraId: id,
+            tareaId: tareaId,
+            state: 'pendiente',
+            evidences: [],
+            observation: ""
+         }));
+         await ObraTarea.insertMany(nuevasObraTareas);
+      }
    }
    
    cleanData.updatedAt = new Date();
    
-   return await Obra.findByIdAndUpdate(id, { $set: cleanData }, { new: true }).populate(['responsable', 'tareas']);
+   const obraActualizada = await Obra.findByIdAndUpdate(id, { $set: cleanData }, { new: true })
+      .populate(['responsable', 'tareas']);
+   
+   // Obtener relaciones ObraTarea actualizadas
+   const obraTareas = await ObraTarea.find({ obraId: id }).populate('tareaId');
+   const obraTareaMap = {};
+   obraTareas.forEach(ot => {
+      if (ot.tareaId) {
+         obraTareaMap[ot.tareaId._id.toString()] = ot;
+      }
+   });
+   
+   // Combinar tareas con ObraTarea
+   obraActualizada.tareas = obraActualizada.tareas.map(tarea => {
+      const obraTarea = obraTareaMap[tarea._id.toString()];
+      return combineTareaWithObraTarea(tarea, obraTarea);
+   });
+   
+   return obraActualizada;
 };
 
 const deleteObra = async (id) => {
+   // Eliminar todas las relaciones ObraTarea asociadas
+   await ObraTarea.deleteMany({ obraId: id });
+   
+   // Eliminar la obra
    return await Obra.findByIdAndDelete(id);
 };
 
@@ -95,4 +246,3 @@ module.exports = {
    updateObra,
    deleteObra
 };
-

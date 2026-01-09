@@ -1,7 +1,27 @@
 const Obra = require('../models/Obra.js');
 const User = require('../models/User.js');
 const Tarea = require('../models/Tarea.js').Model;
+const ObraTarea = require('../models/ObraTarea.js');
 
+// Función auxiliar para combinar Tarea con ObraTarea
+const combineTareaWithObraTarea = (tarea, obraTarea) => {
+   if (!tarea) return null;
+   
+   const tareaObj = tarea.toObject ? tarea.toObject() : tarea;
+   const obraTareaObj = obraTarea ? (obraTarea.toObject ? obraTarea.toObject() : obraTarea) : null;
+   
+   return {
+      id: tareaObj._id.toString(),
+      name: tareaObj.name,
+      description: tareaObj.description || null,
+      evidences: obraTareaObj ? (obraTareaObj.evidences || []) : [],
+      state: obraTareaObj ? obraTareaObj.state : 'pendiente',
+      duration: tareaObj.duration !== undefined ? tareaObj.duration : null,
+      observation: obraTareaObj ? (obraTareaObj.observation || "") : "",
+      created_at: tareaObj.createdAt ? tareaObj.createdAt.toISOString() : null,
+      updated_at: obraTareaObj && obraTareaObj.updatedAt ? obraTareaObj.updatedAt.toISOString() : (tareaObj.updatedAt ? tareaObj.updatedAt.toISOString() : null)
+   };
+};
 
 const getResponsable = async (userType, userId) => {
    // Buscar el usuario autenticado
@@ -19,16 +39,47 @@ const getResponsable = async (userType, userId) => {
       obras = await Obra.find({}).populate('tareas').populate('responsable');
    } else if (userType === 'master') {
       // Si es master: traer solo las obras donde él es responsable
-      obras = await Obra.find({ responsable: userId }).populate('tareas');
+      obras = await Obra.find({ responsable: userId }).populate('tareas').populate('responsable');
    } else {
       // Tipo de usuario no válido
       throw new Error('Invalid user type');
    }
    
-   // Retornar usuario con sus obras (que ya incluyen las tareas)
+   // Para cada obra, combinar tareas con sus relaciones ObraTarea
+   const obrasConTareasCompletas = await Promise.all(obras.map(async (obra) => {
+      const obraObj = obra.toObject ? obra.toObject() : obra;
+      
+      // Obtener todas las relaciones ObraTarea para esta obra
+      const obraTareas = await ObraTarea.find({ obraId: obra._id }).populate('tareaId');
+      
+      // Crear un mapa de tareaId -> ObraTarea
+      const obraTareaMap = {};
+      obraTareas.forEach(ot => {
+         if (ot.tareaId) {
+            obraTareaMap[ot.tareaId._id.toString()] = ot;
+         }
+      });
+      
+      // Combinar tareas con sus relaciones ObraTarea
+      const tareasCompletas = obra.tareas.map(tarea => {
+         const obraTarea = obraTareaMap[tarea._id.toString()];
+         return combineTareaWithObraTarea(tarea, obraTarea);
+      });
+      
+      return {
+         ...obraObj,
+         id: obraObj._id.toString(),
+         tareas: tareasCompletas,
+         responsable: obraObj.responsable ? (typeof obraObj.responsable === 'object' && obraObj.responsable._id ? obraObj.responsable._id.toString() : obraObj.responsable.toString()) : null,
+         created_at: obraObj.createdAt ? obraObj.createdAt.toISOString() : null,
+         updated_at: obraObj.updatedAt ? obraObj.updatedAt.toISOString() : null
+      };
+   }));
+   
+   // Retornar usuario con sus obras (que ya incluyen las tareas combinadas)
    return {
       user: user,
-      obras: obras
+      obras: obrasConTareasCompletas
    };
 };
 
@@ -52,14 +103,19 @@ const updateTareaEstado = async (obraId, tareaId, newState) => {
       return null;
    }
    
-   // Actualizar la tarea como documento independiente
-   const tarea = await Tarea.findByIdAndUpdate(
-      tareaId,
-      { $set: { state: newState, updatedAt: new Date() } },
-      { new: true }
+   // Actualizar o crear la relación ObraTarea con el nuevo estado
+   const obraTarea = await ObraTarea.findOneAndUpdate(
+      { obraId: obra._id, tareaId: tareaId },
+      { 
+         $set: { 
+            state: newState, 
+            updatedAt: new Date() 
+         } 
+      },
+      { new: true, upsert: true }
    );
    
-   if (!tarea) {
+   if (!obraTarea) {
       return null;
    }
    
@@ -88,23 +144,30 @@ const addImagenTarea = async (obraId, tareaId, imageUrl) => {
       return null;
    }
    
-   // Buscar la tarea
-   const tarea = await Tarea.findById(tareaId);
+   // Buscar o crear la relación ObraTarea
+   let obraTarea = await ObraTarea.findOne({ obraId: obra._id, tareaId: tareaId });
    
-   if (!tarea) {
-      return null;
+   if (!obraTarea) {
+      // Si no existe, crearla
+      obraTarea = new ObraTarea({
+         obraId: obra._id,
+         tareaId: tareaId,
+         state: 'pendiente',
+         evidences: [],
+         observation: ""
+      });
    }
    
-   // Agregar la URL al array de evidencias (si no existe ya)
-   if (!tarea.evidences) {
-      tarea.evidences = [];
+   // Inicializar evidences si no existe
+   if (!obraTarea.evidences) {
+      obraTarea.evidences = [];
    }
    
    // Evitar duplicados
-   if (!tarea.evidences.includes(imageUrl)) {
-      tarea.evidences.push(imageUrl);
-      tarea.updatedAt = new Date();
-      await tarea.save();
+   if (!obraTarea.evidences.includes(imageUrl)) {
+      obraTarea.evidences.push(imageUrl);
+      obraTarea.updatedAt = new Date();
+      await obraTarea.save();
    }
    
    // Actualizar updatedAt de la obra
@@ -119,4 +182,3 @@ module.exports = {
    updateTareaEstado,
    addImagenTarea
 };
-

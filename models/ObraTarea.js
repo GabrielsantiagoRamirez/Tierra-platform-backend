@@ -1,28 +1,27 @@
 const { Schema, model } = require("mongoose");
-const mongoosePaginate = require("mongoose-paginate-v2");
 
-const tareaSchema = new Schema({
+// Modelo de relación intermedia entre Obra y Tarea
+// Permite que una tarea pueda estar en múltiples obras con estados independientes
+const obraTareaSchema = new Schema({
     _id: { type: Schema.Types.ObjectId, auto: true },
-    name: {
-        type: String,
+    obraId: {
+        type: Schema.Types.ObjectId,
+        ref: 'Obra',
         required: true
     },
-    description: {
-        type: String,
-        default: null
-    },
-    evidences: {
-        type: [String],
-        default: []
+    tareaId: {
+        type: Schema.Types.ObjectId,
+        ref: 'Tarea',
+        required: true
     },
     state: {
         type: String,
         enum: ['pendiente', 'en_proceso', 'finalizado'],
         default: 'pendiente'
     },
-    duration: {
-        type: Number,
-        default: null
+    evidences: {
+        type: [String],
+        default: []
     },
     observation: {
         type: String,
@@ -37,11 +36,14 @@ const tareaSchema = new Schema({
         default: null
     }
 }, {
-    strict: true, // Ignorar campos no definidos en el schema
+    strict: true,
 });
 
+// Índice compuesto para evitar duplicados y mejorar búsquedas
+obraTareaSchema.index({ obraId: 1, tareaId: 1 }, { unique: true });
+
 // Hook pre-save: eliminar campo 'id' si existe
-tareaSchema.pre('save', function(next) {
+obraTareaSchema.pre('save', function(next) {
     if (this.id !== undefined) {
         this.set('id', undefined, { strict: false });
         delete this.id;
@@ -50,15 +52,14 @@ tareaSchema.pre('save', function(next) {
 });
 
 // Transformar a snake_case para compatibilidad con Flutter
-tareaSchema.set('toJSON', {
+obraTareaSchema.set('toJSON', {
     transform: function(doc, ret) {
         return {
-            id: ret._id.toString(), // Usar _id de MongoDB como id
-            name: ret.name,
-            description: ret.description,
-            evidences: ret.evidences || [],
+            id: ret._id.toString(),
+            obra_id: ret.obraId ? ret.obraId.toString() : null,
+            tarea_id: ret.tareaId ? ret.tareaId.toString() : null,
             state: ret.state,
-            duration: ret.duration,
+            evidences: ret.evidences || [],
             observation: ret.observation || "",
             created_at: ret.createdAt ? ret.createdAt.toISOString() : null,
             updated_at: ret.updatedAt ? ret.updatedAt.toISOString() : null
@@ -66,11 +67,5 @@ tareaSchema.set('toJSON', {
     }
 });
 
-tareaSchema.plugin(mongoosePaginate);
-
-// Exportar el schema para uso en otros modelos
-module.exports = tareaSchema;
-
-// También exportar el modelo para uso directo
-module.exports.Model = model('Tarea', tareaSchema, 'Tareas');
+module.exports = model('ObraTarea', obraTareaSchema, 'ObraTareas');
 

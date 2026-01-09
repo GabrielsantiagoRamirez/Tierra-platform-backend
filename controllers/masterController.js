@@ -1,5 +1,5 @@
 const masterService = require('../services/masterService');
-const Obra = require('../models/Obra.js');
+const tareaService = require('../services/tareaService');
 
 
 const getResponsable = async (req, res) => {
@@ -76,9 +76,15 @@ const updateTareaEstado = async (req, res) => {
          });
       }
       
-      // Buscar la tarea actualizada (ahora es referencia, necesitamos poblar)
-      const obraPopulated = await Obra.findById(obraId).populate('tareas');
-      const tarea = obraPopulated.tareas.find(t => t._id.toString() === tareaId);
+      // Obtener la tarea actualizada con información combinada de ObraTarea
+      const tarea = await tareaService.getTareaById(obraId, tareaId);
+      
+      if (!tarea) {
+         return res.status(404).json({
+            status: 'error',
+            message: 'Tarea not found'
+         });
+      }
       
       console.log('✅ [MASTER] Estado actualizado en', Date.now() - startTime, 'ms');
       
@@ -134,9 +140,15 @@ const addImagenTarea = async (req, res) => {
          });
       }
       
-      // Buscar la tarea actualizada (ahora es referencia, necesitamos poblar)
-      const obraPopulated = await Obra.findById(obraId).populate('tareas');
-      const tarea = obraPopulated.tareas.find(t => t._id.toString() === tareaId);
+      // Obtener la tarea actualizada con información combinada de ObraTarea
+      const tarea = await tareaService.getTareaById(obraId, tareaId);
+      
+      if (!tarea) {
+         return res.status(404).json({
+            status: 'error',
+            message: 'Tarea not found'
+         });
+      }
       
       console.log('✅ [MASTER] Imagen agregada en', Date.now() - startTime, 'ms');
       
