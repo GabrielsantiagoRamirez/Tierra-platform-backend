@@ -65,10 +65,21 @@ const getUserByEmail = async (email) => {
     return await User.findOne({ email: email.toLowerCase() });
 };
 
+/**
+ * Lista usuarios tipo master con paginación
+ * @param {Number} page - Número de página (default: 1)
+ * @param {Number} limit - Límite de resultados por página (default: 10)
+ * @returns {Promise<Object>} Resultado paginado con usuarios master
+ */
+const listMasterUsers = async (page = 1, limit = 10) => {
+    return await User.paginate({ type: 'master' }, { page, limit, sort: { createdAt: -1 } });
+};
+
 module.exports = {
     registerUser,
     loginUser,
     getUserById,
-    getUserByEmail
+    getUserByEmail,
+    listMasterUsers
 };
 

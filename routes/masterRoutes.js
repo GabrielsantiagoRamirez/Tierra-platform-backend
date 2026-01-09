@@ -3,10 +3,12 @@ const router = express.Router();
 const masterController = require("../controllers/masterController");
 const obraController = require("../controllers/obraController");
 const tareaController = require("../controllers/tareaController");
+const userController = require("../controllers/userController");
 const check = require("../middleware/authMiddleware");
 
 // Rutas que requieren solo master
 router.get("/responsable/:userId", check.auth, check.adminOrMaster, masterController.getResponsable);
+router.get("/users", check.auth, check.adminOrMaster, userController.listMasters);
 router.put("/obra/:obraId/tarea/:tareaId/estado", check.auth, check.adminOrMaster, masterController.updateTareaEstado);
 router.post("/obra/:obraId/tarea/:tareaId/imagen", check.auth, check.master, masterController.addImagenTarea);
 

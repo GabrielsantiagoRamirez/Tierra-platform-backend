@@ -124,8 +124,32 @@ const login = async (req, res) => {
    }
 };
 
+const listMasters = async (req, res) => {
+   try {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      
+      const result = await userService.listMasterUsers(page, limit);
+      
+      return res.status(200).json({
+         status: 'success',
+         data: result
+      });
+   } catch (error) {
+      console.error('❌ [LIST MASTERS] Error:', error.message);
+      console.error('❌ [LIST MASTERS] Stack:', error.stack);
+      
+      return res.status(500).json({
+         status: 'error',
+         message: 'Error listing master users',
+         error: error.message
+      });
+   }
+};
+
 module.exports = {
    register,
-   login
+   login,
+   listMasters
 };
 
