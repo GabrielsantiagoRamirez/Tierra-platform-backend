@@ -88,12 +88,54 @@ const createObra = async (obraData) => {
    });
    
    // Combinar tareas con ObraTarea
-   obra.tareas = obra.tareas.map(tarea => {
+   const tareasCombinadas = obra.tareas.map(tarea => {
       const obraTarea = obraTareaMap[tarea._id.toString()];
       return combineTareaWithObraTarea(tarea, obraTarea);
    });
    
-   return obra;
+   // Convertir a objeto plano para evitar que toJSON interfiera
+   const obraObj = obra.toObject ? obra.toObject() : obra;
+   
+   // Formatear responsable si existe
+   let responsableFormateado = null;
+   if (obraObj.responsable) {
+      if (typeof obraObj.responsable === 'object' && obraObj.responsable._id) {
+         // Si está poblado, retornar objeto completo usando toJSON si existe
+         if (obraObj.responsable.toJSON) {
+            responsableFormateado = obraObj.responsable.toJSON();
+         } else {
+            responsableFormateado = {
+               id: obraObj.responsable._id.toString(),
+               type: obraObj.responsable.type || null,
+               name: obraObj.responsable.name || null,
+               lastname: obraObj.responsable.lastname || null,
+               email: obraObj.responsable.email || null,
+               phone: obraObj.responsable.phone || null,
+               city: obraObj.responsable.city || null,
+               dni: obraObj.responsable.dni || null,
+               created_at: obraObj.responsable.createdAt ? obraObj.responsable.createdAt.toISOString() : null,
+               updated_at: obraObj.responsable.updatedAt ? obraObj.responsable.updatedAt.toISOString() : null
+            };
+         }
+      } else {
+         // Si es solo ID, retornar el ID
+         responsableFormateado = obraObj.responsable.toString();
+      }
+   }
+   
+   // Retornar objeto plano con formato correcto
+   return {
+      id: obraObj._id.toString(),
+      title: obraObj.title,
+      description: obraObj.description || null,
+      location: obraObj.location || null,
+      city: obraObj.city || null,
+      tareas: tareasCombinadas, // Ya están combinadas y formateadas
+      responsable: responsableFormateado,
+      costo: obraObj.costo || null,
+      created_at: obraObj.createdAt ? obraObj.createdAt.toISOString() : null,
+      updated_at: obraObj.updatedAt ? obraObj.updatedAt.toISOString() : null
+   };
 };
 
 const listObras = async (page = 1, limit = 10) => {
@@ -109,12 +151,50 @@ const listObras = async (page = 1, limit = 10) => {
          }
       });
       
-      obra.tareas = obra.tareas.map(tarea => {
+      const tareasCombinadas = obra.tareas.map(tarea => {
          const obraTarea = obraTareaMap[tarea._id.toString()];
          return combineTareaWithObraTarea(tarea, obraTarea);
       });
       
-      return obra;
+      const obraObj = obra.toObject ? obra.toObject() : obra;
+      
+      // Formatear responsable
+      let responsableFormateado = null;
+      if (obraObj.responsable) {
+         if (typeof obraObj.responsable === 'object' && obraObj.responsable._id) {
+            if (obraObj.responsable.toJSON) {
+               responsableFormateado = obraObj.responsable.toJSON();
+            } else {
+               responsableFormateado = {
+                  id: obraObj.responsable._id.toString(),
+                  type: obraObj.responsable.type || null,
+                  name: obraObj.responsable.name || null,
+                  lastname: obraObj.responsable.lastname || null,
+                  email: obraObj.responsable.email || null,
+                  phone: obraObj.responsable.phone || null,
+                  city: obraObj.responsable.city || null,
+                  dni: obraObj.responsable.dni || null,
+                  created_at: obraObj.responsable.createdAt ? obraObj.responsable.createdAt.toISOString() : null,
+                  updated_at: obraObj.responsable.updatedAt ? obraObj.responsable.updatedAt.toISOString() : null
+               };
+            }
+         } else {
+            responsableFormateado = obraObj.responsable.toString();
+         }
+      }
+      
+      return {
+         id: obraObj._id.toString(),
+         title: obraObj.title,
+         description: obraObj.description || null,
+         location: obraObj.location || null,
+         city: obraObj.city || null,
+         tareas: tareasCombinadas,
+         responsable: responsableFormateado,
+         costo: obraObj.costo || null,
+         created_at: obraObj.createdAt ? obraObj.createdAt.toISOString() : null,
+         updated_at: obraObj.updatedAt ? obraObj.updatedAt.toISOString() : null
+      };
    }));
    
    return {
@@ -140,12 +220,50 @@ const getObraById = async (id) => {
    });
    
    // Combinar tareas con ObraTarea
-   obra.tareas = obra.tareas.map(tarea => {
+   const tareasCombinadas = obra.tareas.map(tarea => {
       const obraTarea = obraTareaMap[tarea._id.toString()];
       return combineTareaWithObraTarea(tarea, obraTarea);
    });
    
-   return obra;
+   const obraObj = obra.toObject ? obra.toObject() : obra;
+   
+   // Formatear responsable
+   let responsableFormateado = null;
+   if (obraObj.responsable) {
+      if (typeof obraObj.responsable === 'object' && obraObj.responsable._id) {
+         if (obraObj.responsable.toJSON) {
+            responsableFormateado = obraObj.responsable.toJSON();
+         } else {
+            responsableFormateado = {
+               id: obraObj.responsable._id.toString(),
+               type: obraObj.responsable.type || null,
+               name: obraObj.responsable.name || null,
+               lastname: obraObj.responsable.lastname || null,
+               email: obraObj.responsable.email || null,
+               phone: obraObj.responsable.phone || null,
+               city: obraObj.responsable.city || null,
+               dni: obraObj.responsable.dni || null,
+               created_at: obraObj.responsable.createdAt ? obraObj.responsable.createdAt.toISOString() : null,
+               updated_at: obraObj.responsable.updatedAt ? obraObj.responsable.updatedAt.toISOString() : null
+            };
+         }
+      } else {
+         responsableFormateado = obraObj.responsable.toString();
+      }
+   }
+   
+   return {
+      id: obraObj._id.toString(),
+      title: obraObj.title,
+      description: obraObj.description || null,
+      location: obraObj.location || null,
+      city: obraObj.city || null,
+      tareas: tareasCombinadas,
+      responsable: responsableFormateado,
+      costo: obraObj.costo || null,
+      created_at: obraObj.createdAt ? obraObj.createdAt.toISOString() : null,
+      updated_at: obraObj.updatedAt ? obraObj.updatedAt.toISOString() : null
+   };
 };
 
 const updateObra = async (id, updateData) => {
@@ -223,12 +341,50 @@ const updateObra = async (id, updateData) => {
    });
    
    // Combinar tareas con ObraTarea
-   obraActualizada.tareas = obraActualizada.tareas.map(tarea => {
+   const tareasCombinadas = obraActualizada.tareas.map(tarea => {
       const obraTarea = obraTareaMap[tarea._id.toString()];
       return combineTareaWithObraTarea(tarea, obraTarea);
    });
    
-   return obraActualizada;
+   const obraObj = obraActualizada.toObject ? obraActualizada.toObject() : obraActualizada;
+   
+   // Formatear responsable
+   let responsableFormateado = null;
+   if (obraObj.responsable) {
+      if (typeof obraObj.responsable === 'object' && obraObj.responsable._id) {
+         if (obraObj.responsable.toJSON) {
+            responsableFormateado = obraObj.responsable.toJSON();
+         } else {
+            responsableFormateado = {
+               id: obraObj.responsable._id.toString(),
+               type: obraObj.responsable.type || null,
+               name: obraObj.responsable.name || null,
+               lastname: obraObj.responsable.lastname || null,
+               email: obraObj.responsable.email || null,
+               phone: obraObj.responsable.phone || null,
+               city: obraObj.responsable.city || null,
+               dni: obraObj.responsable.dni || null,
+               created_at: obraObj.responsable.createdAt ? obraObj.responsable.createdAt.toISOString() : null,
+               updated_at: obraObj.responsable.updatedAt ? obraObj.responsable.updatedAt.toISOString() : null
+            };
+         }
+      } else {
+         responsableFormateado = obraObj.responsable.toString();
+      }
+   }
+   
+   return {
+      id: obraObj._id.toString(),
+      title: obraObj.title,
+      description: obraObj.description || null,
+      location: obraObj.location || null,
+      city: obraObj.city || null,
+      tareas: tareasCombinadas,
+      responsable: responsableFormateado,
+      costo: obraObj.costo || null,
+      created_at: obraObj.createdAt ? obraObj.createdAt.toISOString() : null,
+      updated_at: obraObj.updatedAt ? obraObj.updatedAt.toISOString() : null
+   };
 };
 
 const deleteObra = async (id) => {
