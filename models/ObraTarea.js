@@ -1,4 +1,5 @@
 const { Schema, model } = require("mongoose");
+const mongoosePaginate = require("mongoose-paginate-v2");
 
 // Modelo de relación intermedia entre Obra y Tarea
 // Permite que una tarea pueda estar en múltiples obras con estados independientes
@@ -66,6 +67,8 @@ obraTareaSchema.set('toJSON', {
         };
     }
 });
+
+obraTareaSchema.plugin(mongoosePaginate);
 
 module.exports = model('ObraTarea', obraTareaSchema, 'ObraTareas');
 

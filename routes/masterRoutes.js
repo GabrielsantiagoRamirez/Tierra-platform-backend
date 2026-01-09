@@ -12,6 +12,10 @@ router.get("/users", check.auth, check.adminOrMaster, userController.listMasters
 router.put("/obra/:obraId/tarea/:tareaId/estado", check.auth, check.adminOrMaster, masterController.updateTareaEstado);
 router.post("/obra/:obraId/tarea/:tareaId/imagen", check.auth, check.master, masterController.addImagenTarea);
 
+// CRUD ObraTarea (admin o master)
+router.get("/obra-tarea", check.auth, check.adminOrMaster, masterController.listObraTareas);
+router.get("/obra-tarea/:id", check.auth, check.adminOrMaster, masterController.getObraTareaById);
+
 // CRUD Obra (admin o master)
 router.post("/obra", check.auth, check.adminOrMaster, obraController.createObra);
 router.get("/obra", check.auth, check.adminOrMaster, obraController.listObras);

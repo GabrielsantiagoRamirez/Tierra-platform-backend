@@ -177,9 +177,77 @@ const addImagenTarea = async (req, res) => {
    }
 };
 
+const listObraTareas = async (req, res) => {
+   const startTime = Date.now();
+   
+   try {
+      console.log('📋 [MASTER] Listando relaciones ObraTarea...');
+      
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      
+      const result = await masterService.listObraTareas(page, limit);
+      
+      console.log('✅ [MASTER] Relaciones ObraTarea listadas en', Date.now() - startTime, 'ms');
+      
+      return res.status(200).json({
+         status: 'success',
+         data: result
+      });
+      
+   } catch (error) {
+      console.error('❌ [MASTER] Error:', error.message);
+      console.error('❌ [MASTER] Stack:', error.stack);
+      
+      return res.status(500).json({
+         status: 'error',
+         message: 'Error listing ObraTarea',
+         error: error.message
+      });
+   }
+};
+
+const getObraTareaById = async (req, res) => {
+   const startTime = Date.now();
+   
+   try {
+      console.log('🔍 [MASTER] Obteniendo relación ObraTarea por ID...');
+      
+      const { id } = req.params;
+      
+      const obraTarea = await masterService.getObraTareaById(id);
+      
+      if (!obraTarea) {
+         return res.status(404).json({
+            status: 'error',
+            message: 'ObraTarea not found'
+         });
+      }
+      
+      console.log('✅ [MASTER] Relación ObraTarea obtenida en', Date.now() - startTime, 'ms');
+      
+      return res.status(200).json({
+         status: 'success',
+         obra_tarea: obraTarea
+      });
+      
+   } catch (error) {
+      console.error('❌ [MASTER] Error:', error.message);
+      console.error('❌ [MASTER] Stack:', error.stack);
+      
+      return res.status(500).json({
+         status: 'error',
+         message: 'Error getting ObraTarea',
+         error: error.message
+      });
+   }
+};
+
 module.exports = {
    getResponsable,
    updateTareaEstado,
-   addImagenTarea
+   addImagenTarea,
+   listObraTareas,
+   getObraTareaById
 };
 

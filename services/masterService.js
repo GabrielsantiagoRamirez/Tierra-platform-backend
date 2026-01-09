@@ -177,8 +177,65 @@ const addImagenTarea = async (obraId, tareaId, imageUrl) => {
    return obra;
 };
 
+const listObraTareas = async (page = 1, limit = 10) => {
+   const result = await ObraTarea.paginate(
+      {}, 
+      { 
+         page, 
+         limit, 
+         populate: ['obraId', 'tareaId'],
+         sort: { createdAt: -1 }
+      }
+   );
+   
+   // Formatear resultados
+   const formattedDocs = result.docs.map(doc => {
+      const docObj = doc.toObject ? doc.toObject() : doc;
+      return {
+         id: docObj._id.toString(),
+         obra_id: docObj.obraId ? (typeof docObj.obraId === 'object' ? docObj.obraId._id.toString() : docObj.obraId.toString()) : null,
+         tarea_id: docObj.tareaId ? (typeof docObj.tareaId === 'object' ? docObj.tareaId._id.toString() : docObj.tareaId.toString()) : null,
+         state: docObj.state,
+         evidences: docObj.evidences || [],
+         observation: docObj.observation || "",
+         created_at: docObj.createdAt ? docObj.createdAt.toISOString() : null,
+         updated_at: docObj.updatedAt ? docObj.updatedAt.toISOString() : null
+      };
+   });
+   
+   return {
+      ...result,
+      docs: formattedDocs
+   };
+};
+
+const getObraTareaById = async (id) => {
+   const obraTarea = await ObraTarea.findById(id)
+      .populate('obraId')
+      .populate('tareaId');
+   
+   if (!obraTarea) {
+      return null;
+   }
+   
+   const docObj = obraTarea.toObject ? obraTarea.toObject() : obraTarea;
+   
+   return {
+      id: docObj._id.toString(),
+      obra_id: docObj.obraId ? (typeof docObj.obraId === 'object' ? docObj.obraId._id.toString() : docObj.obraId.toString()) : null,
+      tarea_id: docObj.tareaId ? (typeof docObj.tareaId === 'object' ? docObj.tareaId._id.toString() : docObj.tareaId.toString()) : null,
+      state: docObj.state,
+      evidences: docObj.evidences || [],
+      observation: docObj.observation || "",
+      created_at: docObj.createdAt ? docObj.createdAt.toISOString() : null,
+      updated_at: docObj.updatedAt ? docObj.updatedAt.toISOString() : null
+   };
+};
+
 module.exports = {
    getResponsable,
    updateTareaEstado,
-   addImagenTarea
+   addImagenTarea,
+   listObraTareas,
+   getObraTareaById
 };
