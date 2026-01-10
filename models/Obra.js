@@ -40,6 +40,11 @@ const obraSchema = new Schema({
         type: Number,
         default: null
     },
+    estado: {
+        type: String,
+        enum: ['pendiente', 'en_proceso', 'finalizado'],
+        default: 'pendiente'
+    },
     createdAt: {
         type: Date,
         default: () => Date.now()
@@ -122,6 +127,7 @@ obraSchema.set('toJSON', {
             }) : [],
             responsable: ret.responsable ? (typeof ret.responsable === 'object' && ret.responsable._id ? ret.responsable._id.toString() : ret.responsable.toString()) : null,
             costo: ret.costo,
+            estado: ret.estado || 'pendiente',
             created_at: ret.createdAt ? ret.createdAt.toISOString() : null,
             updated_at: ret.updatedAt ? ret.updatedAt.toISOString() : null
         };

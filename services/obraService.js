@@ -2,6 +2,21 @@ const Obra = require('../models/Obra.js');
 const Tarea = require('../models/Tarea.js').Model;
 const ObraTarea = require('../models/ObraTarea.js');
 
+// Función helper para calcular el estado de la obra basado en el estado de sus tareas
+const calcularEstadoObra = (obraTareas) => {
+   if (!obraTareas || obraTareas.length === 0) {
+      return 'pendiente';
+   }
+   
+   const estados = obraTareas.map(ot => ot.state || 'pendiente');
+   const todosFinalizados = estados.every(s => s === 'finalizado');
+   const algunoEnProceso = estados.some(s => s === 'en_proceso');
+   
+   if (todosFinalizados) return 'finalizado';
+   if (algunoEnProceso) return 'en_proceso';
+   return 'pendiente';
+};
+
 // Función auxiliar para combinar Tarea con ObraTarea
 const combineTareaWithObraTarea = (tarea, obraTarea) => {
    if (!tarea) return null;
@@ -52,9 +67,11 @@ const createObra = async (obraData) => {
    }
    
    // Crear la obra con referencias a las tareas (solo IDs)
+   // Estado inicial siempre será 'pendiente' (todas las tareas empiezan pendientes)
    const obraDataWithRefs = {
       ...cleanData,
-      tareas: tareasIds
+      tareas: tareasIds,
+      estado: 'pendiente'
    };
    
    const newObra = new Obra(obraDataWithRefs);
@@ -134,13 +151,29 @@ const createObra = async (obraData) => {
       tareas: tareasCombinadas, // Ya están combinadas y formateadas
       responsable: responsableFormateado,
       costo: obraObj.costo || null,
+      estado: obraObj.estado || 'pendiente',
       created_at: obraObj.createdAt ? obraObj.createdAt.toISOString() : null,
       updated_at: obraObj.updatedAt ? obraObj.updatedAt.toISOString() : null
    };
 };
 
-const listObras = async (page = 1, limit = 10) => {
-   const result = await Obra.paginate({}, { page, limit, populate: ['responsable', 'tareas'] });
+const listObras = async (page = 1, limit = 10, estadoFiltro = null, sortBy = 'createdAt', sortOrder = 'desc') => {
+   // Construir query según filtro de estado
+   let query = {};
+   
+   if (estadoFiltro === 'activas') {
+      query.estado = { $in: ['pendiente', 'en_proceso'] };
+   } else if (estadoFiltro === 'finalizadas') {
+      query.estado = 'finalizado';
+   }
+   
+   // Ordenamiento (por defecto: más recientes primero)
+   const sort = {};
+   const validSortFields = ['createdAt', 'updatedAt', 'title', 'costo', 'estado'];
+   const field = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
+   sort[field] = sortOrder === 'asc' ? 1 : -1;
+   
+   const result = await Obra.paginate(query, { page, limit, populate: ['responsable', 'tareas'], sort });
    
    // Para cada obra, combinar tareas con ObraTarea
    const obrasConTareasCompletas = await Promise.all(result.docs.map(async (obra) => {
@@ -193,6 +226,7 @@ const listObras = async (page = 1, limit = 10) => {
          tareas: tareasCombinadas,
          responsable: responsableFormateado,
          costo: obraObj.costo || null,
+         estado: obraObj.estado || 'pendiente',
          created_at: obraObj.createdAt ? obraObj.createdAt.toISOString() : null,
          updated_at: obraObj.updatedAt ? obraObj.updatedAt.toISOString() : null
       };
@@ -262,6 +296,7 @@ const getObraById = async (id) => {
       tareas: tareasCombinadas,
       responsable: responsableFormateado,
       costo: obraObj.costo || null,
+      estado: obraObj.estado || 'pendiente',
       created_at: obraObj.createdAt ? obraObj.createdAt.toISOString() : null,
       updated_at: obraObj.updatedAt ? obraObj.updatedAt.toISOString() : null
    };
@@ -325,6 +360,11 @@ const updateObra = async (id, updateData) => {
          }));
          await ObraTarea.insertMany(nuevasObraTareas);
       }
+      
+      // Recalcular el estado de la obra basado en todas las tareas
+      const todasLasObraTareas = await ObraTarea.find({ obraId: id });
+      const nuevoEstadoObra = calcularEstadoObra(todasLasObraTareas);
+      cleanData.estado = nuevoEstadoObra;
    }
    
    cleanData.updatedAt = new Date();
@@ -383,6 +423,7 @@ const updateObra = async (id, updateData) => {
       tareas: tareasCombinadas,
       responsable: responsableFormateado,
       costo: obraObj.costo || null,
+      estado: obraObj.estado || 'pendiente',
       created_at: obraObj.createdAt ? obraObj.createdAt.toISOString() : null,
       updated_at: obraObj.updatedAt ? obraObj.updatedAt.toISOString() : null
    };
@@ -396,10 +437,46 @@ const deleteObra = async (id) => {
    return await Obra.findByIdAndDelete(id);
 };
 
+const actualizarEstadosObras = async () => {
+   // Obtener todas las obras
+   const obras = await Obra.find({});
+   
+   let actualizadas = 0;
+   let noActualizadas = 0;
+   
+   // Para cada obra, calcular y actualizar su estado
+   for (const obra of obras) {
+      try {
+         // Obtener todas las relaciones ObraTarea de esta obra
+         const obraTareas = await ObraTarea.find({ obraId: obra._id });
+         
+         // Calcular el nuevo estado
+         const nuevoEstado = calcularEstadoObra(obraTareas);
+         
+         // Actualizar el estado de la obra
+         obra.estado = nuevoEstado;
+         obra.updatedAt = new Date();
+         await obra.save();
+         
+         actualizadas++;
+      } catch (error) {
+         console.error(`Error actualizando obra ${obra._id}:`, error);
+         noActualizadas++;
+      }
+   }
+   
+   return {
+      total: obras.length,
+      actualizadas,
+      noActualizadas
+   };
+};
+
 module.exports = {
    createObra,
    listObras,
    getObraById,
    updateObra,
-   deleteObra
+   deleteObra,
+   actualizarEstadosObras
 };

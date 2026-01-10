@@ -22,6 +22,7 @@ router.get("/obra", check.auth, check.adminOrMaster, obraController.listObras);
 router.get("/obra/:id", check.auth, check.adminOrMaster, obraController.getObraById);
 router.put("/obra/:id", check.auth, check.adminOrMaster, obraController.updateObra);
 router.delete("/obra/:id", check.auth, check.adminOrMaster, obraController.deleteObra);
+router.post("/obra/actualizar-estados", check.auth, check.adminOrMaster, obraController.actualizarEstadosObras);
 
 // CRUD Tarea dentro de obra (admin o master)
 router.post("/obra/:obraId/tarea", check.auth, check.adminOrMaster, tareaController.createTarea);

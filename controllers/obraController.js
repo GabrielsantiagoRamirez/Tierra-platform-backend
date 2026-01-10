@@ -29,8 +29,18 @@ const listObras = async (req, res) => {
    try {
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 10;
+      const estadoFiltro = req.query.estado; // 'activas' o 'finalizadas'
       
-      const result = await obraService.listObras(page, limit);
+      // Parsear sort (formato: "field:order" o solo "field")
+      let sortBy = 'createdAt';
+      let sortOrder = 'desc';
+      if (req.query.sort) {
+         const sortParts = req.query.sort.split(':');
+         sortBy = sortParts[0] || 'createdAt';
+         sortOrder = sortParts[1] || 'desc';
+      }
+      
+      const result = await obraService.listObras(page, limit, estadoFiltro, sortBy, sortOrder);
       
       return res.status(200).json({
          status: 'success',
@@ -121,11 +131,30 @@ const deleteObra = async (req, res) => {
    }
 };
 
+const actualizarEstadosObras = async (req, res) => {
+   try {
+      const resultado = await obraService.actualizarEstadosObras();
+      
+      return res.status(200).json({
+         status: 'success',
+         message: 'Estados de obras actualizados correctamente',
+         resultado: resultado
+      });
+   } catch (error) {
+      return res.status(500).json({
+         status: 'error',
+         message: 'Error actualizando estados de obras',
+         error: error.message
+      });
+   }
+};
+
 module.exports = {
    createObra,
    listObras,
    getObraById,
    updateObra,
-   deleteObra
+   deleteObra,
+   actualizarEstadosObras
 };
 

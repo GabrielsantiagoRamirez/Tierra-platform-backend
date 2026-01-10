@@ -3,6 +3,21 @@ const User = require('../models/User.js');
 const Tarea = require('../models/Tarea.js').Model;
 const ObraTarea = require('../models/ObraTarea.js');
 
+// Función helper para calcular el estado de la obra basado en el estado de sus tareas
+const calcularEstadoObra = (obraTareas) => {
+   if (!obraTareas || obraTareas.length === 0) {
+      return 'pendiente';
+   }
+   
+   const estados = obraTareas.map(ot => ot.state || 'pendiente');
+   const todosFinalizados = estados.every(s => s === 'finalizado');
+   const algunoEnProceso = estados.some(s => s === 'en_proceso');
+   
+   if (todosFinalizados) return 'finalizado';
+   if (algunoEnProceso) return 'en_proceso';
+   return 'pendiente';
+};
+
 // Función auxiliar para combinar Tarea con ObraTarea
 const combineTareaWithObraTarea = (tarea, obraTarea) => {
    if (!tarea) return null;
@@ -120,7 +135,14 @@ const updateTareaEstado = async (obraId, tareaId, newState) => {
       return null;
    }
    
-   // Actualizar updatedAt de la obra
+   // Obtener TODAS las tareas de esta obra para recalcular el estado
+   const todasLasObraTareas = await ObraTarea.find({ obraId: obra._id });
+   
+   // Calcular el nuevo estado de la obra basado en todas las tareas
+   const nuevoEstadoObra = calcularEstadoObra(todasLasObraTareas);
+   
+   // Actualizar el estado de la obra
+   obra.estado = nuevoEstadoObra;
    obra.updatedAt = new Date();
    await obra.save();
    
