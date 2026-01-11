@@ -152,6 +152,9 @@ const createObra = async (obraData) => {
       responsable: responsableFormateado,
       costo: obraObj.costo || null,
       estado: obraObj.estado || 'pendiente',
+      fecha_inicio: obraObj.fechaInicio ? obraObj.fechaInicio.toISOString() : null,
+      fecha_fin: obraObj.fechaFin ? obraObj.fechaFin.toISOString() : null,
+      fecha_entrega: obraObj.fechaEntrega ? obraObj.fechaEntrega.toISOString() : null,
       created_at: obraObj.createdAt ? obraObj.createdAt.toISOString() : null,
       updated_at: obraObj.updatedAt ? obraObj.updatedAt.toISOString() : null
    };
@@ -227,6 +230,9 @@ const listObras = async (page = 1, limit = 10, estadoFiltro = null, sortBy = 'cr
          responsable: responsableFormateado,
          costo: obraObj.costo || null,
          estado: obraObj.estado || 'pendiente',
+         fecha_inicio: obraObj.fechaInicio ? obraObj.fechaInicio.toISOString() : null,
+         fecha_fin: obraObj.fechaFin ? obraObj.fechaFin.toISOString() : null,
+         fecha_entrega: obraObj.fechaEntrega ? obraObj.fechaEntrega.toISOString() : null,
          created_at: obraObj.createdAt ? obraObj.createdAt.toISOString() : null,
          updated_at: obraObj.updatedAt ? obraObj.updatedAt.toISOString() : null
       };
@@ -297,6 +303,9 @@ const getObraById = async (id) => {
       responsable: responsableFormateado,
       costo: obraObj.costo || null,
       estado: obraObj.estado || 'pendiente',
+      fecha_inicio: obraObj.fechaInicio ? obraObj.fechaInicio.toISOString() : null,
+      fecha_fin: obraObj.fechaFin ? obraObj.fechaFin.toISOString() : null,
+      fecha_entrega: obraObj.fechaEntrega ? obraObj.fechaEntrega.toISOString() : null,
       created_at: obraObj.createdAt ? obraObj.createdAt.toISOString() : null,
       updated_at: obraObj.updatedAt ? obraObj.updatedAt.toISOString() : null
    };
@@ -424,6 +433,9 @@ const updateObra = async (id, updateData) => {
       responsable: responsableFormateado,
       costo: obraObj.costo || null,
       estado: obraObj.estado || 'pendiente',
+      fecha_inicio: obraObj.fechaInicio ? obraObj.fechaInicio.toISOString() : null,
+      fecha_fin: obraObj.fechaFin ? obraObj.fechaFin.toISOString() : null,
+      fecha_entrega: obraObj.fechaEntrega ? obraObj.fechaEntrega.toISOString() : null,
       created_at: obraObj.createdAt ? obraObj.createdAt.toISOString() : null,
       updated_at: obraObj.updatedAt ? obraObj.updatedAt.toISOString() : null
    };
