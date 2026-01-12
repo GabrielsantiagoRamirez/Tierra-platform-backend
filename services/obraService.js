@@ -170,10 +170,12 @@ const listObras = async (page = 1, limit = 10, estadoFiltro = null, sortBy = 'cr
    let query = {};
    
    if (estadoFiltro === 'activas') {
-      query.estado = { $in: ['pendiente', 'en_proceso', 'estancado'] };
-   } else if (estadoFiltro === 'finalizadas') {
-      query.estado = 'finalizado';
+      query.estado = { $in: ['pendiente', 'en_proceso', 'estancado', 'finalizado'] };
    }
+   // Filtro de solo finalizadas comentado
+   // else if (estadoFiltro === 'finalizadas') {
+   //    query.estado = 'finalizado';
+   // }
    
    // Ordenamiento (por defecto: más recientes primero)
    const sort = {};
