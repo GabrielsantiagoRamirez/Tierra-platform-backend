@@ -250,16 +250,17 @@ const updateTareaCosto = async (req, res) => {
       console.log('💰 [MASTER] Actualizando costo de tarea...');
       
       const { obraId, tareaId } = req.params;
-      const { costo } = req.body;
+      const updateData = req.body;
       
-      if (costo === undefined || costo === null) {
+      // Validar que al menos se envíe un campo
+      if (!updateData || Object.keys(updateData).length === 0) {
          return res.status(400).json({
             status: 'error',
-            message: 'Costo is required in request body'
+            message: 'At least one field (costo, observation) is required in request body'
          });
       }
       
-      const obraTarea = await masterService.updateTareaCosto(obraId, tareaId, costo);
+      const obraTarea = await masterService.updateTareaCosto(obraId, tareaId, updateData);
       
       if (!obraTarea) {
          return res.status(404).json({

@@ -260,10 +260,12 @@ const getObraTareaById = async (id) => {
    };
 };
 
-const updateTareaCosto = async (obraId, tareaId, costo) => {
-   // Validar que el costo sea un número positivo
-   if (typeof costo !== 'number' || costo < 0) {
-      throw new Error('El costo debe ser un número positivo');
+const updateTareaCosto = async (obraId, tareaId, updateData) => {
+   // Validar que el costo sea un número positivo si se proporciona
+   if (updateData.costo !== undefined && updateData.costo !== null) {
+      if (typeof updateData.costo !== 'number' || updateData.costo < 0) {
+         throw new Error('El costo debe ser un número positivo');
+      }
    }
    
    // Buscar la obra
@@ -283,15 +285,27 @@ const updateTareaCosto = async (obraId, tareaId, costo) => {
       return null;
    }
    
-   // Actualizar el costo en ObraTarea
+   // Preparar datos para actualizar (solo campos permitidos)
+   const allowedFields = ['costo', 'observation'];
+   const updateFields = {};
+   
+   allowedFields.forEach(field => {
+      if (updateData[field] !== undefined) {
+         updateFields[field] = updateData[field];
+      }
+   });
+   
+   // Si no hay campos para actualizar, retornar error
+   if (Object.keys(updateFields).length === 0) {
+      throw new Error('No hay campos válidos para actualizar');
+   }
+   
+   updateFields.updatedAt = new Date();
+   
+   // Actualizar los campos en ObraTarea
    const obraTarea = await ObraTarea.findOneAndUpdate(
       { obraId: obra._id, tareaId: tareaId },
-      { 
-         $set: { 
-            costo: costo,
-            updatedAt: new Date() 
-         } 
-      },
+      { $set: updateFields },
       { new: true }
    );
    

@@ -18,6 +18,7 @@ const combineTareaWithObraTarea = (tarea, obraTarea) => {
       state: obraTareaObj ? obraTareaObj.state : 'pendiente',
       duration: tareaObj.duration !== undefined ? tareaObj.duration : null,
       observation: obraTareaObj ? (obraTareaObj.observation || "") : "",
+      costo: obraTareaObj ? (obraTareaObj.costo || null) : null,
       created_at: tareaObj.createdAt ? tareaObj.createdAt.toISOString() : null,
       updated_at: obraTareaObj && obraTareaObj.updatedAt ? obraTareaObj.updatedAt.toISOString() : (tareaObj.updatedAt ? tareaObj.updatedAt.toISOString() : null)
    };
