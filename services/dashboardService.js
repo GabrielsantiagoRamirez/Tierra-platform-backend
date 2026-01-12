@@ -38,7 +38,24 @@ const getDashboardData = async () => {
       }
    });
    
-   // 3. Costo total de todas las obras
+   // 3. Número de tareas por estado
+   const tareasPorEstado = {
+      pendiente: 0,
+      en_proceso: 0,
+      finalizado: 0,
+      estancado: 0
+   };
+   
+   // Obtener todas las relaciones ObraTarea
+   const todasLasObraTareas = await ObraTarea.find({});
+   
+   todasLasObraTareas.forEach(obraTarea => {
+      if (obraTarea.state && tareasPorEstado.hasOwnProperty(obraTarea.state)) {
+         tareasPorEstado[obraTarea.state]++;
+      }
+   });
+   
+   // 4. Costo total de todas las obras
    // Sumar costoFinal si existe, si no, sumar costoEstimado, si no, sumar costo
    const costoTotal = obras.reduce((sum, obra) => {
       const costo = obra.costoFinal || obra.costoEstimado || obra.costo || 0;
@@ -48,8 +65,10 @@ const getDashboardData = async () => {
    return {
       porcentaje_avance_promedio: Math.round(porcentajePromedio * 100) / 100,
       obras_por_estado: obrasPorEstado,
+      tareas_por_estado: tareasPorEstado,
       costo_total: costoTotal,
-      total_obras: obras.length
+      total_obras: obras.length,
+      total_tareas: todasLasObraTareas.length
    };
 };
 
