@@ -11,9 +11,11 @@ const calcularEstadoObra = (obraTareas) => {
    
    const estados = obraTareas.map(ot => ot.state || 'pendiente');
    const todosFinalizados = estados.every(s => s === 'finalizado');
+   const algunoEstancado = estados.some(s => s === 'estancado');
    const algunoEnProceso = estados.some(s => s === 'en_proceso');
    
    if (todosFinalizados) return 'finalizado';
+   if (algunoEstancado) return 'estancado';
    if (algunoEnProceso) return 'en_proceso';
    return 'pendiente';
 };
@@ -34,6 +36,7 @@ const combineTareaWithObraTarea = (tarea, obraTarea) => {
       state: obraTareaObj ? obraTareaObj.state : 'pendiente',
       duration: tareaObj.duration !== undefined ? tareaObj.duration : null,
       observation: obraTareaObj ? (obraTareaObj.observation || "") : "",
+      costo: obraTareaObj ? (obraTareaObj.costo || null) : null,
       created_at: tareaObj.createdAt ? tareaObj.createdAt.toISOString() : null,
       updated_at: obraTareaObj && obraTareaObj.updatedAt ? obraTareaObj.updatedAt.toISOString() : (tareaObj.updatedAt ? tareaObj.updatedAt.toISOString() : null)
    };
@@ -102,7 +105,7 @@ const getResponsable = async (userType, userId) => {
 
 const updateTareaEstado = async (obraId, tareaId, newState) => {
    // Validar que el estado sea válido
-   const validStates = ['pendiente', 'en_proceso', 'finalizado'];
+   const validStates = ['pendiente', 'en_proceso', 'finalizado', 'estancado'];
    if (!validStates.includes(newState)) {
       throw new Error(`Invalid state. Must be one of: ${validStates.join(', ')}`);
    }
@@ -221,6 +224,7 @@ const listObraTareas = async (page = 1, limit = 10) => {
          state: docObj.state,
          evidences: docObj.evidences || [],
          observation: docObj.observation || "",
+         costo: docObj.costo || null,
          created_at: docObj.createdAt ? docObj.createdAt.toISOString() : null,
          updated_at: docObj.updatedAt ? docObj.updatedAt.toISOString() : null
       };
@@ -250,9 +254,52 @@ const getObraTareaById = async (id) => {
       state: docObj.state,
       evidences: docObj.evidences || [],
       observation: docObj.observation || "",
+      costo: docObj.costo || null,
       created_at: docObj.createdAt ? docObj.createdAt.toISOString() : null,
       updated_at: docObj.updatedAt ? docObj.updatedAt.toISOString() : null
    };
+};
+
+const updateTareaCosto = async (obraId, tareaId, costo) => {
+   // Validar que el costo sea un número positivo
+   if (typeof costo !== 'number' || costo < 0) {
+      throw new Error('El costo debe ser un número positivo');
+   }
+   
+   // Buscar la obra
+   const obra = await Obra.findById(obraId);
+   
+   if (!obra) {
+      return null;
+   }
+   
+   // Validar que la obra esté finalizada
+   if (obra.estado !== 'finalizado') {
+      throw new Error('Solo se puede agregar costo a tareas de obras finalizadas');
+   }
+   
+   // Validar que la tarea pertenece a esta obra
+   if (!obra.tareas.includes(tareaId)) {
+      return null;
+   }
+   
+   // Actualizar el costo en ObraTarea
+   const obraTarea = await ObraTarea.findOneAndUpdate(
+      { obraId: obra._id, tareaId: tareaId },
+      { 
+         $set: { 
+            costo: costo,
+            updatedAt: new Date() 
+         } 
+      },
+      { new: true }
+   );
+   
+   if (!obraTarea) {
+      return null;
+   }
+   
+   return obraTarea;
 };
 
 module.exports = {
@@ -260,5 +307,6 @@ module.exports = {
    updateTareaEstado,
    addImagenTarea,
    listObraTareas,
-   getObraTareaById
+   getObraTareaById,
+   updateTareaCosto
 };

@@ -10,9 +10,11 @@ const calcularEstadoObra = (obraTareas) => {
    
    const estados = obraTareas.map(ot => ot.state || 'pendiente');
    const todosFinalizados = estados.every(s => s === 'finalizado');
+   const algunoEstancado = estados.some(s => s === 'estancado');
    const algunoEnProceso = estados.some(s => s === 'en_proceso');
    
    if (todosFinalizados) return 'finalizado';
+   if (algunoEstancado) return 'estancado';
    if (algunoEnProceso) return 'en_proceso';
    return 'pendiente';
 };
@@ -33,6 +35,7 @@ const combineTareaWithObraTarea = (tarea, obraTarea) => {
       state: obraTareaObj ? obraTareaObj.state : 'pendiente',
       duration: tareaObj.duration !== undefined ? tareaObj.duration : null,
       observation: obraTareaObj ? (obraTareaObj.observation || "") : "",
+      costo: obraTareaObj ? (obraTareaObj.costo || null) : null,
       created_at: tareaObj.createdAt ? tareaObj.createdAt.toISOString() : null,
       updated_at: obraTareaObj && obraTareaObj.updatedAt ? obraTareaObj.updatedAt.toISOString() : (tareaObj.updatedAt ? tareaObj.updatedAt.toISOString() : null)
    };
@@ -151,6 +154,8 @@ const createObra = async (obraData) => {
       tareas: tareasCombinadas, // Ya están combinadas y formateadas
       responsable: responsableFormateado,
       costo: obraObj.costo || null,
+      costo_estimado: obraObj.costoEstimado || null,
+      costo_final: obraObj.costoFinal || null,
       estado: obraObj.estado || 'pendiente',
       fecha_inicio: obraObj.fechaInicio ? obraObj.fechaInicio.toISOString() : null,
       fecha_fin: obraObj.fechaFin ? obraObj.fechaFin.toISOString() : null,
@@ -302,6 +307,8 @@ const getObraById = async (id) => {
       tareas: tareasCombinadas,
       responsable: responsableFormateado,
       costo: obraObj.costo || null,
+      costo_estimado: obraObj.costoEstimado || null,
+      costo_final: obraObj.costoFinal || null,
       estado: obraObj.estado || 'pendiente',
       fecha_inicio: obraObj.fechaInicio ? obraObj.fechaInicio.toISOString() : null,
       fecha_fin: obraObj.fechaFin ? obraObj.fechaFin.toISOString() : null,
@@ -432,6 +439,8 @@ const updateObra = async (id, updateData) => {
       tareas: tareasCombinadas,
       responsable: responsableFormateado,
       costo: obraObj.costo || null,
+      costo_estimado: obraObj.costoEstimado || null,
+      costo_final: obraObj.costoFinal || null,
       estado: obraObj.estado || 'pendiente',
       fecha_inicio: obraObj.fechaInicio ? obraObj.fechaInicio.toISOString() : null,
       fecha_fin: obraObj.fechaFin ? obraObj.fechaFin.toISOString() : null,

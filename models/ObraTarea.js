@@ -17,7 +17,7 @@ const obraTareaSchema = new Schema({
     },
     state: {
         type: String,
-        enum: ['pendiente', 'en_proceso', 'finalizado'],
+        enum: ['pendiente', 'en_proceso', 'finalizado', 'estancado'],
         default: 'pendiente'
     },
     evidences: {
@@ -27,6 +27,10 @@ const obraTareaSchema = new Schema({
     observation: {
         type: String,
         default: ""
+    },
+    costo: {
+        type: Number,
+        default: null
     },
     createdAt: {
         type: Date,
@@ -62,6 +66,7 @@ obraTareaSchema.set('toJSON', {
             state: ret.state,
             evidences: ret.evidences || [],
             observation: ret.observation || "",
+            costo: ret.costo || null,
             created_at: ret.createdAt ? ret.createdAt.toISOString() : null,
             updated_at: ret.updatedAt ? ret.updatedAt.toISOString() : null
         };

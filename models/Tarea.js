@@ -17,7 +17,7 @@ const tareaSchema = new Schema({
     },
     state: {
         type: String,
-        enum: ['pendiente', 'en_proceso', 'finalizado'],
+        enum: ['pendiente', 'en_proceso', 'finalizado', 'estancado'],
         default: 'pendiente'
     },
     duration: {

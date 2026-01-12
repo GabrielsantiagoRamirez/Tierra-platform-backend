@@ -243,11 +243,74 @@ const getObraTareaById = async (req, res) => {
    }
 };
 
+const updateTareaCosto = async (req, res) => {
+   const startTime = Date.now();
+   
+   try {
+      console.log('💰 [MASTER] Actualizando costo de tarea...');
+      
+      const { obraId, tareaId } = req.params;
+      const { costo } = req.body;
+      
+      if (costo === undefined || costo === null) {
+         return res.status(400).json({
+            status: 'error',
+            message: 'Costo is required in request body'
+         });
+      }
+      
+      const obraTarea = await masterService.updateTareaCosto(obraId, tareaId, costo);
+      
+      if (!obraTarea) {
+         return res.status(404).json({
+            status: 'error',
+            message: 'Obra or Tarea not found'
+         });
+      }
+      
+      // Obtener la tarea actualizada con información combinada de ObraTarea
+      const tarea = await tareaService.getTareaById(obraId, tareaId);
+      
+      if (!tarea) {
+         return res.status(404).json({
+            status: 'error',
+            message: 'Tarea not found'
+         });
+      }
+      
+      console.log('✅ [MASTER] Costo actualizado en', Date.now() - startTime, 'ms');
+      
+      return res.status(200).json({
+         status: 'success',
+         message: 'Tarea costo updated successfully',
+         tarea: tarea
+      });
+      
+   } catch (error) {
+      console.error('❌ [MASTER] Error:', error.message);
+      console.error('❌ [MASTER] Stack:', error.stack);
+      
+      if (error.message.includes('Solo se puede agregar costo') || error.message.includes('El costo debe ser')) {
+         return res.status(400).json({
+            status: 'error',
+            message: error.message
+         });
+      }
+      
+      return res.status(500).json({
+         status: 'error',
+         message: 'Error updating tarea costo',
+         error: error.message
+      });
+   }
+};
+
 module.exports = {
    getResponsable,
    updateTareaEstado,
    addImagenTarea,
    listObraTareas,
-   getObraTareaById
+   getObraTareaById,
+   updateTareaCosto
 };
 
