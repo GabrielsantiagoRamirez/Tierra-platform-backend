@@ -14,7 +14,7 @@ router.get("/dashboard", check.auth, check.adminOrMaster, dashboardController.ge
 router.get("/responsable/:userId", check.auth, check.adminOrMaster, masterController.getResponsable);
 router.get("/users", check.auth, check.adminOrMaster, userController.listMasters);
 router.put("/obra/:obraId/tarea/:tareaId/estado", check.auth, check.adminOrMaster, masterController.updateTareaEstado);
-router.put("/obra/:obraId/tarea/:tareaId/costo", check.auth, check.adminOrMaster, masterController.updateTareaCosto);
+// router.put("/obra/:obraId/tarea/:tareaId/costo", check.auth, check.adminOrMaster, masterController.updateTareaCosto); // Comentado: el costo se actualiza en el endpoint updateTarea
 router.post("/obra/:obraId/tarea/:tareaId/imagen", check.auth, check.master, masterController.addImagenTarea);
 
 // CRUD ObraTarea (admin o master)

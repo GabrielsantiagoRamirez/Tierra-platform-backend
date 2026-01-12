@@ -125,7 +125,7 @@ const updateTarea = async (obraId, tareaId, updateData) => {
    }
    
    // Separar campos de Tarea de campos de ObraTarea
-   const { state, evidences, observation, ...tareaFields } = updateData;
+   const { state, evidences, observation, costo, ...tareaFields } = updateData;
    
    // Actualizar la tarea base (solo campos de Tarea: name, description, duration, observation base)
    if (Object.keys(tareaFields).length > 0) {
@@ -138,6 +138,15 @@ const updateTarea = async (obraId, tareaId, updateData) => {
    if (state !== undefined) obraTareaUpdate.state = state;
    if (evidences !== undefined) obraTareaUpdate.evidences = evidences;
    if (observation !== undefined) obraTareaUpdate.observation = observation;
+   let seActualizoCosto = false;
+   if (costo !== undefined && costo !== null) {
+      // Validar que el costo sea un número positivo
+      if (typeof costo !== 'number' || costo < 0) {
+         throw new Error('El costo debe ser un número positivo');
+      }
+      obraTareaUpdate.costo = costo;
+      seActualizoCosto = true;
+   }
    
    if (Object.keys(obraTareaUpdate).length > 0) {
       obraTareaUpdate.updatedAt = new Date();
@@ -146,6 +155,13 @@ const updateTarea = async (obraId, tareaId, updateData) => {
          { $set: obraTareaUpdate },
          { new: true, upsert: true }
       );
+   }
+   
+   // Si se actualizó el costo, recalcular el costoFinal de la obra automáticamente
+   if (seActualizoCosto) {
+      const todasLasObraTareas = await ObraTarea.find({ obraId: obra._id });
+      const costoTotal = todasLasObraTareas.reduce((sum, ot) => sum + (ot.costo || 0), 0);
+      obra.costoFinal = costoTotal;
    }
    
    obra.updatedAt = new Date();
