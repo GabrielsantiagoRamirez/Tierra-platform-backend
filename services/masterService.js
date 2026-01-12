@@ -313,6 +313,15 @@ const updateTareaCosto = async (obraId, tareaId, updateData) => {
       return null;
    }
    
+   // Recalcular el costoFinal de la obra (suma de todos los costos de tareas)
+   const todasLasObraTareas = await ObraTarea.find({ obraId: obra._id });
+   const costoTotal = todasLasObraTareas.reduce((sum, ot) => sum + (ot.costo || 0), 0);
+   
+   // Actualizar costoFinal de la obra automáticamente
+   obra.costoFinal = costoTotal;
+   obra.updatedAt = new Date();
+   await obra.save();
+   
    return obraTarea;
 };
 
