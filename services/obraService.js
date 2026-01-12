@@ -234,6 +234,8 @@ const listObras = async (page = 1, limit = 10, estadoFiltro = null, sortBy = 'cr
          tareas: tareasCombinadas,
          responsable: responsableFormateado,
          costo: obraObj.costo || null,
+         costo_estimado: obraObj.costoEstimado || null,
+         costo_final: obraObj.costoFinal || null,
          estado: obraObj.estado || 'pendiente',
          fecha_inicio: obraObj.fechaInicio ? obraObj.fechaInicio.toISOString() : null,
          fecha_fin: obraObj.fechaFin ? obraObj.fechaFin.toISOString() : null,
