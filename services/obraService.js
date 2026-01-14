@@ -455,9 +455,68 @@ const updateObra = async (id, updateData) => {
 };
 
 const deleteObra = async (id) => {
-   // Eliminar todas las relaciones ObraTarea asociadas
-   await ObraTarea.deleteMany({ obraId: id });
+   // Obtener la obra con sus tareas antes de eliminar
+   const obra = await Obra.findById(id).populate('tareas');
    
+   if (!obra) {
+      return null;
+   }
+
+   // Obtener todas las tareas de esta obra antes de eliminar relaciones
+   const obraTareas = await ObraTarea.find({ obraId: id }).populate('tareaId');
+   
+   // Crear un mapa de tareas con sus datos para buscar similares
+   const tareasParaEliminar = [];
+   const tareasIds = obra.tareas.map(t => t._id.toString());
+   
+   for (const obraTarea of obraTareas) {
+      if (obraTarea.tareaId) {
+         const tarea = obraTarea.tareaId;
+         tareasParaEliminar.push({
+            id: tarea._id,
+            name: tarea.name,
+            description: tarea.description
+         });
+      }
+   }
+
+   // Eliminar todas las relaciones ObraTarea asociadas a esta obra
+   await ObraTarea.deleteMany({ obraId: id });
+
+   // Para cada tarea de esta obra, buscar y eliminar tareas similares en otras obras
+   for (const tareaData of tareasParaEliminar) {
+      // Buscar tareas con el mismo name y description en toda la BD
+      const tareasSimilares = await Tarea.find({
+         name: tareaData.name,
+         description: tareaData.description
+      });
+
+      // Para cada tarea similar, verificar si está en otras obras
+      for (const tareaSimilar of tareasSimilares) {
+         const tareaSimilarId = tareaSimilar._id.toString();
+         
+         // Buscar relaciones ObraTarea que contengan esta tarea
+         const relacionesObraTarea = await ObraTarea.find({ tareaId: tareaSimilarId });
+         
+         // Eliminar todas las relaciones ObraTarea de esta tarea
+         if (relacionesObraTarea.length > 0) {
+            await ObraTarea.deleteMany({ tareaId: tareaSimilarId });
+            
+            // Actualizar las obras para remover la referencia a esta tarea
+            await Obra.updateMany(
+               { tareas: tareaSimilarId },
+               { $pull: { tareas: tareaSimilarId } }
+            );
+         }
+         
+         // Eliminar la tarea si no está en ninguna otra obra
+         const obrasConEstaTarea = await Obra.find({ tareas: tareaSimilarId });
+         if (obrasConEstaTarea.length === 0) {
+            await Tarea.findByIdAndDelete(tareaSimilarId);
+         }
+      }
+   }
+
    // Eliminar la obra
    return await Obra.findByIdAndDelete(id);
 };

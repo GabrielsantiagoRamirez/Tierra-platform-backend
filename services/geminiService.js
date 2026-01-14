@@ -32,13 +32,7 @@ const filterCompleteTasks = (tareas) => {
    });
 };
 
-/**
- * Procesa un documento (PDF, imagen, Excel, Word) y extrae datos de obra y tareas
- * @param {String} filePath - Ruta del archivo a procesar
- * @param {String} mimeType - Tipo MIME del archivo
- * @param {String} modelName - Nombre del modelo a usar (por defecto 'gemini-2.5-flash')
- * @returns {Promise<Object>} JSON con datos de obra y tareas
- */
+
 const processDocument = async (filePath, mimeType, modelName = 'gemini-2.5-flash') => {
    if (!ai) {
       throw new Error('GEMINI_API_KEY no está configurada');
@@ -71,7 +65,7 @@ Analiza este documento y extrae la siguiente información en formato JSON:
 
 2. **Lista de Tareas:**
    - item (número de item)
-   - actividad (descripción de la tarea/actividad)
+   - actividad (descripción COMPLETA de la tarea/actividad - NO truncar el texto, extrae TODO el contenido de la celda)
    - unidad (unidad de medida: ML, M2, UN, VJ, etc.)
    - cantidad (cantidad numérica)
    - precio_unitario (precio por unidad)
@@ -80,6 +74,8 @@ Analiza este documento y extrae la siguiente información en formato JSON:
 
 IMPORTANTE:
 - Extrae TODOS los items de la tabla
+- El campo "actividad" debe contener la descripción COMPLETA de la tarea, sin truncar ni cortar el texto. Si la descripción es larga, incluye TODO el texto completo.
+- Lee completamente cada celda de actividad, incluso si el texto está en múltiples líneas o es extenso.
 - Si hay subtotales o categorías, inclúyelos en el campo categoria
 - Los precios deben ser números, sin símbolos de moneda
 - Si un campo no está disponible, usa null
