@@ -48,11 +48,21 @@ const transformTareaData = (tareaData) => {
       throw new Error('Tarea debe tener actividad');
    }
    
-   // Concatenar item, unidad, cantidad, categoria en description
+   // Concatenar item, unidad, cantidad, precio_unitario, categoria en description
    const descriptionParts = [];
    if (tareaData.item != null) descriptionParts.push(`Item: ${tareaData.item}`);
    if (tareaData.unidad != null) descriptionParts.push(`Unidad: ${tareaData.unidad}`);
    if (tareaData.cantidad != null) descriptionParts.push(`Cantidad: ${tareaData.cantidad}`);
+   // Formatear precio_unitario con formato de moneda para display
+   if (tareaData.precio_unitario != null) {
+      const precioFormateado = new Intl.NumberFormat('es-CO', { 
+         style: 'currency', 
+         currency: 'COP',
+         minimumFractionDigits: 0,
+         maximumFractionDigits: 0
+      }).format(tareaData.precio_unitario);
+      descriptionParts.push(`Valor Unidad: ${precioFormateado}`);
+   }
    if (tareaData.categoria != null) descriptionParts.push(`Categoría: ${tareaData.categoria}`);
    
    const description = descriptionParts.length > 0 ? descriptionParts.join(' | ') : null;

@@ -86,9 +86,18 @@ const processDocument = async (req, res) => {
       if (isExcel || isWord) {
          console.log(`🔄 [DOCUMENT] Convirtiendo ${isExcel ? 'Excel' : 'Word'} a PDF...`);
          
-         // Generar ruta para el PDF convertido
-         const pdfFileName = path.basename(tempFilePath, path.extname(tempFilePath)) + '.pdf';
-         convertedPdfPath = path.join(path.dirname(tempFilePath), pdfFileName);
+         // Generar ruta temporal para el PDF convertido
+         const timestamp = Date.now();
+         const originalName = path.basename(req.file.originalname, path.extname(req.file.originalname));
+         const pdfFileName = `${originalName}_${timestamp}.pdf`;
+         convertedPdfPath = path.join(os.tmpdir(), 'construction-docs', pdfFileName);
+         
+         // Asegurar que el directorio temporal existe
+         try {
+            await fs.mkdir(path.dirname(convertedPdfPath), { recursive: true });
+         } catch (mkdirError) {
+            // Si ya existe, ignorar el error
+         }
 
          if (isExcel) {
             await excelConverter.convertExcelToPdf(tempFilePath, convertedPdfPath);
@@ -116,26 +125,52 @@ const processDocument = async (req, res) => {
 
       console.log('✅ [DOCUMENT] Documento procesado en', Date.now() - startTime, 'ms');
 
-      // Guardar automáticamente en la base de datos
-      const obraCreada = await documentService.saveProcessedDocument(extractedData);
-      console.log('✅ [DOCUMENT] Datos guardados en la base de datos');
+      // Verificar si se debe guardar o solo procesar (query param: ?save=false)
+      const saveToDb = req.query.save !== 'false'; // Por defecto guarda, a menos que save=false
 
-      // Limpiar archivos temporales
-      try {
-         await fs.unlink(tempFilePath);
-         if (convertedPdfPath) {
-            await fs.unlink(convertedPdfPath);
+      if (saveToDb) {
+         // Guardar automáticamente en la base de datos
+         const obraCreada = await documentService.saveProcessedDocument(extractedData);
+         console.log('✅ [DOCUMENT] Datos guardados en la base de datos');
+
+         // Limpiar archivos temporales
+         try {
+            await fs.unlink(tempFilePath);
+            if (convertedPdfPath) {
+               await fs.unlink(convertedPdfPath);
+            }
+         } catch (cleanupError) {
+            console.warn('⚠️  No se pudo eliminar archivo temporal:', cleanupError.message);
          }
-      } catch (cleanupError) {
-         console.warn('⚠️  No se pudo eliminar archivo temporal:', cleanupError.message);
-      }
 
-      return res.status(201).json({
-         status: 'success',
-         message: 'Documento procesado y guardado exitosamente',
-         obra: obraCreada,
-         processing_time_ms: Date.now() - startTime
-      });
+         return res.status(201).json({
+            status: 'success',
+            message: 'Documento procesado y guardado exitosamente',
+            obra: obraCreada,
+            extractedData: extractedData, // También devolver los datos extraídos
+            processing_time_ms: Date.now() - startTime
+         });
+      } else {
+         // Solo procesar, no guardar
+         console.log('📋 [DOCUMENT] Modo solo-procesamiento: NO se guardará en la base de datos');
+
+         // Limpiar archivos temporales
+         try {
+            await fs.unlink(tempFilePath);
+            if (convertedPdfPath) {
+               await fs.unlink(convertedPdfPath);
+            }
+         } catch (cleanupError) {
+            console.warn('⚠️  No se pudo eliminar archivo temporal:', cleanupError.message);
+         }
+
+         return res.status(200).json({
+            status: 'success',
+            message: 'Documento procesado exitosamente (sin guardar en BD)',
+            extractedData: extractedData,
+            processing_time_ms: Date.now() - startTime
+         });
+      }
 
    } catch (error) {
       console.error('❌ [DOCUMENT] Error:', error.message);
