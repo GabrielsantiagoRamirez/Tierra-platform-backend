@@ -57,10 +57,6 @@ const obraSchema = new Schema({
         type: Date,
         default: null
     },
-    fechaFin: {
-        type: Date,
-        default: null
-    },
     fechaEntrega: {
         type: Date,
         default: null
@@ -151,7 +147,6 @@ obraSchema.set('toJSON', {
             costo_final: ret.costoFinal || null,
             estado: ret.estado || 'pendiente',
             fecha_inicio: ret.fechaInicio ? ret.fechaInicio.toISOString() : null,
-            fecha_fin: ret.fechaFin ? ret.fechaFin.toISOString() : null,
             fecha_entrega: ret.fechaEntrega ? ret.fechaEntrega.toISOString() : null,
             created_at: ret.createdAt ? ret.createdAt.toISOString() : null,
             updated_at: ret.updatedAt ? ret.updatedAt.toISOString() : null

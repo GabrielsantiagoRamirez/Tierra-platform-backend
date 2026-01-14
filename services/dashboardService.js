@@ -105,34 +105,31 @@ const getDashboardData = async () => {
    
    // Clasificar obras y guardarlas en arrays
    for (const obra of obras) {
-      // Solo clasificar obras que tengan fechaFin (fecha planificada)
-      if (!obra.fechaFin) continue;
-      
-      const fechaFin = new Date(obra.fechaFin);
       const fechaEntrega = obra.fechaEntrega ? new Date(obra.fechaEntrega) : null;
       
       let clasificacion = null;
       
-      if (obra.estado === 'finalizado' && fechaEntrega) {
-         // Obra finalizada: comparar fechaFin (planificada) con fechaEntrega (real)
-         if (fechaEntrega < fechaFin) {
-            obrasAdelantadas++;
-            clasificacion = 'adelantada';
-         } else if (fechaEntrega > fechaFin) {
-            obrasRetrasadas++;
-            clasificacion = 'retrasada';
-         } else {
+      // Si está finalizada → Adelantada (ya se acabó/entregó)
+      if (obra.estado === 'finalizado') {
+         obrasAdelantadas++;
+         clasificacion = 'adelantada';
+      }
+      // Si NO está finalizada
+      else {
+         // Si no tiene fechaEntrega → A tiempo (por defecto)
+         if (!fechaEntrega) {
             obrasATiempo++;
             clasificacion = 'a_tiempo';
          }
-      } else {
-         // Obra no finalizada: comparar fechaFin (planificada) con hoy
-         if (fechaFin >= ahora) {
-            obrasATiempo++;
-            clasificacion = 'a_tiempo';
-         } else {
-            obrasRetrasadas++;
-            clasificacion = 'retrasada';
+         // Si tiene fechaEntrega
+         else {
+            if (fechaEntrega >= ahora) {
+               obrasATiempo++; // Aún no ha pasado la fecha de entrega
+               clasificacion = 'a_tiempo';
+            } else {
+               obrasRetrasadas++; // Ya pasó la fecha y no está finalizada
+               clasificacion = 'retrasada';
+            }
          }
       }
       
@@ -201,7 +198,6 @@ const getDashboardData = async () => {
             costo_final: obraObj.costoFinal || null,
             estado: obraObj.estado || 'pendiente',
             fecha_inicio: obraObj.fechaInicio ? obraObj.fechaInicio.toISOString() : null,
-            fecha_fin: obraObj.fechaFin ? obraObj.fechaFin.toISOString() : null,
             fecha_entrega: obraObj.fechaEntrega ? obraObj.fechaEntrega.toISOString() : null,
             created_at: obraObj.createdAt ? obraObj.createdAt.toISOString() : null,
             updated_at: obraObj.updatedAt ? obraObj.updatedAt.toISOString() : null
@@ -288,7 +284,6 @@ const getDashboardData = async () => {
          costo_final: obraObj.costoFinal || null,
          estado: obraObj.estado || 'pendiente',
          fecha_inicio: obraObj.fechaInicio ? obraObj.fechaInicio.toISOString() : null,
-         fecha_fin: obraObj.fechaFin ? obraObj.fechaFin.toISOString() : null,
          fecha_entrega: obraObj.fechaEntrega ? obraObj.fechaEntrega.toISOString() : null,
          created_at: obraObj.createdAt ? obraObj.createdAt.toISOString() : null,
          updated_at: obraObj.updatedAt ? obraObj.updatedAt.toISOString() : null

@@ -71,6 +71,11 @@ const createObra = async (obraData) => {
    
    // Crear la obra con referencias a las tareas (solo IDs)
    // Estado inicial siempre será 'pendiente' (todas las tareas empiezan pendientes)
+   // Si no viene fechaInicio, asignar automáticamente la fecha actual
+   if (!cleanData.fechaInicio) {
+      cleanData.fechaInicio = new Date();
+   }
+   
    const obraDataWithRefs = {
       ...cleanData,
       tareas: tareasIds,
@@ -158,7 +163,6 @@ const createObra = async (obraData) => {
       costo_final: obraObj.costoFinal || null,
       estado: obraObj.estado || 'pendiente',
       fecha_inicio: obraObj.fechaInicio ? obraObj.fechaInicio.toISOString() : null,
-      fecha_fin: obraObj.fechaFin ? obraObj.fechaFin.toISOString() : null,
       fecha_entrega: obraObj.fechaEntrega ? obraObj.fechaEntrega.toISOString() : null,
       created_at: obraObj.createdAt ? obraObj.createdAt.toISOString() : null,
       updated_at: obraObj.updatedAt ? obraObj.updatedAt.toISOString() : null
@@ -240,7 +244,6 @@ const listObras = async (page = 1, limit = 10, estadoFiltro = null, sortBy = 'cr
          costo_final: obraObj.costoFinal || null,
          estado: obraObj.estado || 'pendiente',
          fecha_inicio: obraObj.fechaInicio ? obraObj.fechaInicio.toISOString() : null,
-         fecha_fin: obraObj.fechaFin ? obraObj.fechaFin.toISOString() : null,
          fecha_entrega: obraObj.fechaEntrega ? obraObj.fechaEntrega.toISOString() : null,
          created_at: obraObj.createdAt ? obraObj.createdAt.toISOString() : null,
          updated_at: obraObj.updatedAt ? obraObj.updatedAt.toISOString() : null
@@ -315,7 +318,6 @@ const getObraById = async (id) => {
       costo_final: obraObj.costoFinal || null,
       estado: obraObj.estado || 'pendiente',
       fecha_inicio: obraObj.fechaInicio ? obraObj.fechaInicio.toISOString() : null,
-      fecha_fin: obraObj.fechaFin ? obraObj.fechaFin.toISOString() : null,
       fecha_entrega: obraObj.fechaEntrega ? obraObj.fechaEntrega.toISOString() : null,
       created_at: obraObj.createdAt ? obraObj.createdAt.toISOString() : null,
       updated_at: obraObj.updatedAt ? obraObj.updatedAt.toISOString() : null
@@ -460,7 +462,6 @@ const updateObra = async (id, updateData) => {
       costo_final: obraObj.costoFinal || null,
       estado: obraObj.estado || 'pendiente',
       fecha_inicio: obraObj.fechaInicio ? obraObj.fechaInicio.toISOString() : null,
-      fecha_fin: obraObj.fechaFin ? obraObj.fechaFin.toISOString() : null,
       fecha_entrega: obraObj.fechaEntrega ? obraObj.fechaEntrega.toISOString() : null,
       created_at: obraObj.createdAt ? obraObj.createdAt.toISOString() : null,
       updated_at: obraObj.updatedAt ? obraObj.updatedAt.toISOString() : null
