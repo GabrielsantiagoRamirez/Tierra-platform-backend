@@ -5,10 +5,18 @@ const obraController = require("../controllers/obraController");
 const tareaController = require("../controllers/tareaController");
 const userController = require("../controllers/userController");
 const dashboardController = require("../controllers/dashboardController");
+const documentController = require("../controllers/documentController");
 const check = require("../middleware/authMiddleware");
 
 // Dashboard (admin o master)
 router.get("/dashboard", check.auth, check.adminOrMaster, dashboardController.getDashboard);
+
+// Procesar documentos con IA (admin o master) - Procesa y guarda automáticamente en BD
+router.post("/documento/procesar", check.auth, check.adminOrMaster, documentController.upload.single('documento'), documentController.processDocument);
+
+// Guardar datos procesados del documento en la base de datos (admin o master)
+// NOTA: Este endpoint ya no se usa, el guardado se hace automáticamente en /documento/procesar
+// router.post("/documento/guardar", check.auth, check.adminOrMaster, documentController.saveDocument);
 
 // Rutas que requieren solo master
 router.get("/responsable/:userId", check.auth, check.adminOrMaster, masterController.getResponsable);
