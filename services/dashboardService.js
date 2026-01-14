@@ -101,27 +101,27 @@ const getDashboardData = async () => {
    let obrasAdelantadas = 0;
    
    obras.forEach(obra => {
-      // Solo clasificar obras que tengan fechaEntrega
-      if (!obra.fechaEntrega) return;
+      // Solo clasificar obras que tengan fechaFin (fecha planificada)
+      if (!obra.fechaFin) return;
       
-      const fechaEntrega = new Date(obra.fechaEntrega);
-      const fechaFin = obra.fechaFin ? new Date(obra.fechaFin) : null;
+      const fechaFin = new Date(obra.fechaFin);
+      const fechaEntrega = obra.fechaEntrega ? new Date(obra.fechaEntrega) : null;
       
-      if (obra.estado === 'finalizado' && fechaFin) {
-         // Obra finalizada: comparar fechaFin con fechaEntrega
-         if (fechaFin < fechaEntrega) {
-            obrasAdelantadas++;
-         } else if (fechaFin > fechaEntrega) {
-            obrasRetrasadas++;
+      if (obra.estado === 'finalizado' && fechaEntrega) {
+         // Obra finalizada: comparar fechaFin (planificada) con fechaEntrega (real)
+         if (fechaEntrega < fechaFin) {
+            obrasAdelantadas++; // Se entregó antes de lo planificado
+         } else if (fechaEntrega > fechaFin) {
+            obrasRetrasadas++; // Se entregó después de lo planificado
          } else {
-            obrasATiempo++;
+            obrasATiempo++; // Se entregó exactamente en la fecha planificada
          }
       } else {
-         // Obra no finalizada: comparar fechaEntrega con hoy
-         if (fechaEntrega >= ahora) {
-            obrasATiempo++;
+         // Obra no finalizada: comparar fechaFin (planificada) con hoy
+         if (fechaFin >= ahora) {
+            obrasATiempo++; // Aún está dentro del plazo
          } else {
-            obrasRetrasadas++;
+            obrasRetrasadas++; // Ya pasó la fecha planificada y no está finalizada
          }
       }
    });

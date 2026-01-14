@@ -147,6 +147,12 @@ const updateTareaEstado = async (obraId, tareaId, newState) => {
    // Actualizar el estado de la obra
    obra.estado = nuevoEstadoObra;
    obra.updatedAt = new Date();
+   
+   // Si la obra pasa a "finalizado" y no tiene fechaEntrega, actualizarla
+   if (nuevoEstadoObra === 'finalizado' && !obra.fechaEntrega) {
+      obra.fechaEntrega = new Date();
+   }
+   
    await obra.save();
    
    return obra;

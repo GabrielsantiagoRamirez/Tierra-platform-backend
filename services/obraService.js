@@ -385,6 +385,19 @@ const updateObra = async (id, updateData) => {
       const todasLasObraTareas = await ObraTarea.find({ obraId: id });
       const nuevoEstadoObra = calcularEstadoObra(todasLasObraTareas);
       cleanData.estado = nuevoEstadoObra;
+      
+      // Si la obra pasa a "finalizado" y no tiene fechaEntrega, actualizarla
+      if (nuevoEstadoObra === 'finalizado' && !obra.fechaEntrega) {
+         cleanData.fechaEntrega = new Date();
+      }
+   }
+   
+   // Si se actualiza el estado manualmente a "finalizado" y no tiene fechaEntrega, actualizarla
+   if (cleanData.estado === 'finalizado' && !cleanData.fechaEntrega) {
+      const obraActual = await Obra.findById(id);
+      if (obraActual && !obraActual.fechaEntrega) {
+         cleanData.fechaEntrega = new Date();
+      }
    }
    
    cleanData.updatedAt = new Date();
@@ -540,6 +553,12 @@ const actualizarEstadosObras = async () => {
          // Actualizar el estado de la obra
          obra.estado = nuevoEstado;
          obra.updatedAt = new Date();
+         
+         // Si la obra pasa a "finalizado" y no tiene fechaEntrega, actualizarla
+         if (nuevoEstado === 'finalizado' && !obra.fechaEntrega) {
+            obra.fechaEntrega = new Date();
+         }
+         
          await obra.save();
          
          actualizadas++;
