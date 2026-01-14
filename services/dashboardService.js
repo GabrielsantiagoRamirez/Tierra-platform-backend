@@ -99,32 +99,124 @@ const getDashboardData = async () => {
    let obrasATiempo = 0;
    let obrasRetrasadas = 0;
    let obrasAdelantadas = 0;
+   const obrasATiempoArray = [];
+   const obrasRetrasadasArray = [];
+   const obrasAdelantadasArray = [];
    
-   obras.forEach(obra => {
+   // Clasificar obras y guardarlas en arrays
+   for (const obra of obras) {
       // Solo clasificar obras que tengan fechaFin (fecha planificada)
-      if (!obra.fechaFin) return;
+      if (!obra.fechaFin) continue;
       
       const fechaFin = new Date(obra.fechaFin);
       const fechaEntrega = obra.fechaEntrega ? new Date(obra.fechaEntrega) : null;
       
+      let clasificacion = null;
+      
       if (obra.estado === 'finalizado' && fechaEntrega) {
          // Obra finalizada: comparar fechaFin (planificada) con fechaEntrega (real)
          if (fechaEntrega < fechaFin) {
-            obrasAdelantadas++; // Se entregó antes de lo planificado
+            obrasAdelantadas++;
+            clasificacion = 'adelantada';
          } else if (fechaEntrega > fechaFin) {
-            obrasRetrasadas++; // Se entregó después de lo planificado
+            obrasRetrasadas++;
+            clasificacion = 'retrasada';
          } else {
-            obrasATiempo++; // Se entregó exactamente en la fecha planificada
+            obrasATiempo++;
+            clasificacion = 'a_tiempo';
          }
       } else {
          // Obra no finalizada: comparar fechaFin (planificada) con hoy
          if (fechaFin >= ahora) {
-            obrasATiempo++; // Aún está dentro del plazo
+            obrasATiempo++;
+            clasificacion = 'a_tiempo';
          } else {
-            obrasRetrasadas++; // Ya pasó la fecha planificada y no está finalizada
+            obrasRetrasadas++;
+            clasificacion = 'retrasada';
          }
       }
-   });
+      
+      // Formatear la obra y agregarla al array correspondiente
+      if (clasificacion) {
+         // Poblar responsable si existe
+         if (obra.responsable) {
+            await obra.populate('responsable');
+         }
+         
+         // Poblar tareas
+         await obra.populate('tareas');
+         
+         // Obtener relaciones ObraTarea
+         const obraTareas = await ObraTarea.find({ obraId: obra._id }).populate('tareaId');
+         const obraTareaMap = {};
+         obraTareas.forEach(ot => {
+            if (ot.tareaId) {
+               obraTareaMap[ot.tareaId._id.toString()] = ot;
+            }
+         });
+         
+         // Combinar tareas con ObraTarea
+         const tareasCombinadas = obra.tareas.map(tarea => {
+            const obraTarea = obraTareaMap[tarea._id.toString()];
+            return combineTareaWithObraTarea(tarea, obraTarea);
+         });
+         
+         const obraObj = obra.toObject ? obra.toObject() : obra;
+         
+         // Formatear responsable
+         let responsableFormateado = null;
+         if (obraObj.responsable) {
+            if (typeof obraObj.responsable === 'object' && obraObj.responsable._id) {
+               if (obraObj.responsable.toJSON) {
+                  responsableFormateado = obraObj.responsable.toJSON();
+               } else {
+                  responsableFormateado = {
+                     id: obraObj.responsable._id.toString(),
+                     type: obraObj.responsable.type || null,
+                     name: obraObj.responsable.name || null,
+                     lastname: obraObj.responsable.lastname || null,
+                     email: obraObj.responsable.email || null,
+                     phone: obraObj.responsable.phone || null,
+                     city: obraObj.responsable.city || null,
+                     dni: obraObj.responsable.dni || null,
+                     created_at: obraObj.responsable.createdAt ? obraObj.responsable.createdAt.toISOString() : null,
+                     updated_at: obraObj.responsable.updatedAt ? obraObj.responsable.updatedAt.toISOString() : null
+                  };
+               }
+            } else {
+               responsableFormateado = obraObj.responsable.toString();
+            }
+         }
+         
+         const obraFormateada = {
+            id: obraObj._id.toString(),
+            title: obraObj.title,
+            description: obraObj.description || null,
+            location: obraObj.location || null,
+            city: obraObj.city || null,
+            tareas: tareasCombinadas,
+            responsable: responsableFormateado,
+            costo: obraObj.costo || null,
+            costo_estimado: obraObj.costoEstimado || null,
+            costo_final: obraObj.costoFinal || null,
+            estado: obraObj.estado || 'pendiente',
+            fecha_inicio: obraObj.fechaInicio ? obraObj.fechaInicio.toISOString() : null,
+            fecha_fin: obraObj.fechaFin ? obraObj.fechaFin.toISOString() : null,
+            fecha_entrega: obraObj.fechaEntrega ? obraObj.fechaEntrega.toISOString() : null,
+            created_at: obraObj.createdAt ? obraObj.createdAt.toISOString() : null,
+            updated_at: obraObj.updatedAt ? obraObj.updatedAt.toISOString() : null
+         };
+         
+         // Agregar al array correspondiente
+         if (clasificacion === 'a_tiempo') {
+            obrasATiempoArray.push(obraFormateada);
+         } else if (clasificacion === 'retrasada') {
+            obrasRetrasadasArray.push(obraFormateada);
+         } else if (clasificacion === 'adelantada') {
+            obrasAdelantadasArray.push(obraFormateada);
+         }
+      }
+   }
    
    // 8. Obras Recientes (últimas 5, formato completo como listObras)
    const obrasOrdenadas = obras
@@ -213,6 +305,9 @@ const getDashboardData = async () => {
       obras_a_tiempo: obrasATiempo,
       obras_retrasadas: obrasRetrasadas,
       obras_adelantadas: obrasAdelantadas,
+      obras_a_tiempo_lista: obrasATiempoArray,
+      obras_retrasadas_lista: obrasRetrasadasArray,
+      obras_adelantadas_lista: obrasAdelantadasArray,
       obras_recientes: obrasRecientes,
       total_obras: obras.length,
       total_tareas: todasLasObraTareas.length
