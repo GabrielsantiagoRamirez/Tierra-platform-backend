@@ -20,6 +20,10 @@ const obraSchema = new Schema({
         type: String,
         default: null
     },
+    departamento: {
+        type: String,
+        default: null
+    },
     tareas: {
         type: [Schema.Types.ObjectId],
         ref: 'Tarea',
@@ -101,6 +105,7 @@ obraSchema.set('toJSON', {
             description: ret.description,
             location: ret.location,
             city: ret.city,
+            departamento: ret.departamento,
             tareas: ret.tareas ? ret.tareas.map(tarea => {
                 // Si está poblado, tarea es un documento de Mongoose
                 if (tarea && typeof tarea === 'object') {
