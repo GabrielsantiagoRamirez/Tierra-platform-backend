@@ -6,6 +6,7 @@ const tareaController = require("../controllers/tareaController");
 const userController = require("../controllers/userController");
 const dashboardController = require("../controllers/dashboardController");
 const documentController = require("../controllers/documentController");
+const reportePdfController = require("../controllers/reportePdfController");
 const check = require("../middleware/authMiddleware");
 
 // Dashboard (admin o master)
@@ -50,6 +51,14 @@ router.get("/tarea", check.auth, check.adminOrMaster, tareaController.listTareas
 router.get("/tarea/:id", check.auth, check.adminOrMaster, tareaController.getTareaIndependienteById);
 router.put("/tarea/:id", check.auth, check.adminOrMaster, tareaController.updateTareaIndependiente);
 router.delete("/tarea/:id", check.auth, check.adminOrMaster, tareaController.deleteTareaIndependiente);
+
+// CRUD Reporte PDF (admin o master)
+router.post("/obra/:obraId/reporte-pdf", check.auth, check.adminOrMaster, reportePdfController.createReportePdf);
+router.get("/obra/:obraId/reporte-pdf", check.auth, check.adminOrMaster, reportePdfController.listReportesByObra);
+router.get("/reporte-pdf/:id", check.auth, check.adminOrMaster, reportePdfController.getReportePdfById);
+router.get("/reporte-pdf/clave/:clave", check.auth, check.adminOrMaster, reportePdfController.getReportePdfByClave);
+router.delete("/reporte-pdf/:id", check.auth, check.adminOrMaster, reportePdfController.deleteReportePdfById);
+router.delete("/reporte-pdf/clave/:clave", check.auth, check.adminOrMaster, reportePdfController.deleteReportePdfByClave);
 
 module.exports = router;
 
