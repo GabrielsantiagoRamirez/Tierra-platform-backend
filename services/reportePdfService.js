@@ -327,37 +327,48 @@ const generateCloudinarySignedUrl = (publicId, resourceType = 'raw', format = 'p
  * @returns {Promise<Buffer>} Buffer del PDF
  */
 const downloadPdfFromUrl = async (url, maxRedirects = 5) => {
-   // Si es URL de Cloudinary, verificar si necesita firma
-   if (isCloudinaryUrl(url)) {
-      const urlObj = new URL(url);
-      const pathParts = urlObj.pathname.split('/').filter(part => part);
-      
-      // Detectar el tipo de entrega: /upload/, /private/, /authenticated/
-      // El tipo está después de resource_type (índice 2)
-      const deliveryType = pathParts[2] || 'upload'; // 'upload', 'private', 'authenticated'
-      
-      // Si es /upload/, es público por defecto, intentar primero sin firma
-      // Si es /private/ o /authenticated/, necesita firma siempre
-      if (deliveryType === 'private' || deliveryType === 'authenticated') {
-         // Necesita firma obligatoriamente
-         const cloudinaryInfo = extractCloudinaryPublicId(url);
-         if (cloudinaryInfo) {
-            try {
-               console.log('🔐 [CLOUDINARY] Recurso privado detectado, generando URL firmada para:', cloudinaryInfo.public_id);
-               const resourceType = pathParts[1] || 'raw';
-               const lastPart = pathParts[pathParts.length - 1] || '';
-               const format = lastPart.includes('.') ? lastPart.substring(lastPart.lastIndexOf('.') + 1) : 'pdf';
-               const version = cloudinaryInfo.version || null;
-               
-               const signedUrl = generateCloudinarySignedUrl(cloudinaryInfo.public_id, resourceType, format, version);
-               url = signedUrl;
-            } catch (signError) {
-               console.warn('⚠️  [CLOUDINARY] No se pudo generar URL firmada, usando URL original:', signError.message);
+   try {
+      // Si es URL de Cloudinary, verificar si necesita firma
+      if (isCloudinaryUrl(url)) {
+         try {
+            const urlObj = new URL(url);
+            const pathParts = urlObj.pathname.split('/').filter(part => part);
+            
+            // Detectar el tipo de entrega: /upload/, /private/, /authenticated/
+            // El tipo está después de resource_type (índice 2)
+            // pathParts[0] = cloud_name, pathParts[1] = resource_type, pathParts[2] = delivery_type
+            const deliveryType = pathParts.length > 2 ? pathParts[2] : 'upload'; // 'upload', 'private', 'authenticated'
+            
+            // Si es /upload/, es público por defecto, intentar primero sin firma
+            // Si es /private/ o /authenticated/, necesita firma siempre
+            if (deliveryType === 'private' || deliveryType === 'authenticated') {
+               // Necesita firma obligatoriamente
+               const cloudinaryInfo = extractCloudinaryPublicId(url);
+               if (cloudinaryInfo) {
+                  try {
+                     console.log('🔐 [CLOUDINARY] Recurso privado detectado, generando URL firmada para:', cloudinaryInfo.public_id);
+                     const resourceType = pathParts[1] || 'raw';
+                     const lastPart = pathParts[pathParts.length - 1] || '';
+                     const format = lastPart.includes('.') ? lastPart.substring(lastPart.lastIndexOf('.') + 1) : 'pdf';
+                     const version = cloudinaryInfo.version || null;
+                     
+                     const signedUrl = generateCloudinarySignedUrl(cloudinaryInfo.public_id, resourceType, format, version);
+                     url = signedUrl;
+                  } catch (signError) {
+                     console.warn('⚠️  [CLOUDINARY] No se pudo generar URL firmada, usando URL original:', signError.message);
+                  }
+               }
             }
+            // Si es /upload/, continuar sin firma (es público)
+            // Si falla con 401, el código de abajo lo manejará y generará la firma
+         } catch (urlParseError) {
+            console.warn('⚠️  [CLOUDINARY] Error parseando URL de Cloudinary:', urlParseError.message);
+            // Continuar con la URL original si hay error al parsear
          }
       }
-      // Si es /upload/, continuar sin firma (es público)
-      // Si falla con 401, el código de abajo lo manejará y generará la firma
+   } catch (error) {
+      console.error('❌ [CLOUDINARY] Error en verificación inicial de URL:', error.message);
+      // Continuar con la descarga normal si hay error
    }
    
    return new Promise((resolve, reject) => {
@@ -414,27 +425,55 @@ const downloadPdfFromUrl = async (url, maxRedirects = 5) => {
          if (response.statusCode < 200 || response.statusCode >= 300) {
             // Si es 401 y es Cloudinary con /upload/, intentar generar URL firmada
             if (response.statusCode === 401 && isCloudinaryUrl(url) && maxRedirects === 5) {
+               // Guardar la URL original para el reintento (captura en el closure)
+               const originalUrl = url;
+               
                // Primera vez que falla, intentar con firma
-               const cloudinaryInfo = extractCloudinaryPublicId(url);
-               if (cloudinaryInfo) {
+               // Consumir el body del error primero
+               let errorBody = '';
+               const bodyChunks = [];
+               
+               response.on('data', (chunk) => {
+                  bodyChunks.push(chunk);
+                  errorBody += chunk.toString();
+               });
+               
+               response.on('end', () => {
+                  // Intentar generar URL firmada después de consumir el body
                   try {
-                     console.log('⚠️  [CLOUDINARY] 401 recibido para recurso /upload/, generando URL firmada...');
-                     const urlObj2 = new URL(url);
-                     const pathParts2 = urlObj2.pathname.split('/').filter(part => part);
-                     const resourceType = pathParts2[1] || 'raw';
-                     const lastPart = pathParts2[pathParts2.length - 1] || '';
-                     const format = lastPart.includes('.') ? lastPart.substring(lastPart.lastIndexOf('.') + 1) : 'pdf';
-                     const version = cloudinaryInfo.version || null;
-                     
-                     const signedUrl = generateCloudinarySignedUrl(cloudinaryInfo.public_id, resourceType, format, version);
-                     // Intentar de nuevo con la URL firmada
-                     return downloadPdfFromUrl(signedUrl, maxRedirects - 1)
-                        .then(resolve)
-                        .catch(reject);
+                     const cloudinaryInfo = extractCloudinaryPublicId(originalUrl);
+                     if (cloudinaryInfo) {
+                        console.log('⚠️  [CLOUDINARY] 401 recibido para recurso /upload/, generando URL firmada...');
+                        const urlObj2 = new URL(originalUrl);
+                        const pathParts2 = urlObj2.pathname.split('/').filter(part => part);
+                        const resourceType = pathParts2[1] || 'raw';
+                        const lastPart = pathParts2[pathParts2.length - 1] || '';
+                        const format = lastPart.includes('.') ? lastPart.substring(lastPart.lastIndexOf('.') + 1) : 'pdf';
+                        const version = cloudinaryInfo.version || null;
+                        
+                        const signedUrl = generateCloudinarySignedUrl(cloudinaryInfo.public_id, resourceType, format, version);
+                        
+                        // Intentar de nuevo con la URL firmada
+                        downloadPdfFromUrl(signedUrl, maxRedirects - 1)
+                           .then(resolve)
+                           .catch(reject);
+                        return;
+                     }
                   } catch (signError) {
+                     console.error('❌ [CLOUDINARY] Error generando URL firmada para reintento:', signError.message);
                      // Si falla la generación de firma, continuar con el error original
                   }
-               }
+                  
+                  // Si no se pudo generar firma o no es Cloudinary, rechazar con el error original
+                  reject(new Error(`HTTP 401: ${response.statusMessage}. Response: ${errorBody.substring(0, 200)}`));
+               });
+               
+               response.on('error', (streamError) => {
+                  console.error('❌ [CLOUDINARY] Error leyendo body del error 401:', streamError.message);
+                  reject(new Error(`HTTP 401: ${response.statusMessage}`));
+               });
+               
+               return; // Salir temprano, el handler 'end' manejará el reintento o error
             }
             
             // Intentar leer el body del error para más información

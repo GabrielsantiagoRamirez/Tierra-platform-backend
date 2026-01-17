@@ -262,8 +262,20 @@ const downloadReportePdfById = async (req, res) => {
          // Configurar headers para descarga de PDF
          const nombreArchivo = reporte.nombre || `reporte-${reporte.clave}.pdf`;
          
+         // Codificar el nombre del archivo para headers HTTP (RFC 5987)
+         // Los headers HTTP solo aceptan ASCII, así que codificamos caracteres no-ASCII
+         const encodeRFC5987 = (str) => {
+            return encodeURIComponent(str)
+               .replace(/'/g, "%27")
+               .replace(/\(/g, "%28")
+               .replace(/\)/g, "%29");
+         };
+         
+         // Usar filename* para soportar caracteres no-ASCII (UTF-8)
+         const contentDisposition = `attachment; filename="${nombreArchivo.replace(/[^\x20-\x7E]/g, '_')}"; filename*=UTF-8''${encodeRFC5987(nombreArchivo)}`;
+         
          res.setHeader('Content-Type', 'application/pdf');
-         res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivo}"`);
+         res.setHeader('Content-Disposition', contentDisposition);
          res.setHeader('Content-Length', pdfBuffer.length);
 
          // Enviar el PDF como respuesta
