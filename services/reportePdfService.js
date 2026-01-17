@@ -74,6 +74,26 @@ const createReportePdf = async (obraId, reporteData) => {
 };
 
 /**
+ * Lista todos los reportes PDF de todas las obras
+ * @param {Number} page - Página (opcional, default: 1)
+ * @param {Number} limit - Límite por página (opcional, default: 10)
+ * @returns {Promise<Object>} Lista paginada de reportes
+ */
+const listAllReportes = async (page = 1, limit = 10) => {
+   const result = await ReportePdf.paginate(
+      {},
+      {
+         page,
+         limit,
+         sort: { createdAt: -1 }, // Más recientes primero
+         populate: ['generatedBy', 'obraId']
+      }
+   );
+
+   return result;
+};
+
+/**
  * Lista todos los reportes PDF de una obra
  * @param {String} obraId - ID de la obra
  * @param {Number} page - Página (opcional, default: 1)
@@ -168,6 +188,7 @@ const deleteReportePdfByClave = async (clave) => {
 
 module.exports = {
    createReportePdf,
+   listAllReportes,
    listReportesByObra,
    getReportePdfById,
    getReportePdfByClave,

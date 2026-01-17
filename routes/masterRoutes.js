@@ -54,6 +54,7 @@ router.delete("/tarea/:id", check.auth, check.adminOrMaster, tareaController.del
 
 // CRUD Reporte PDF (admin o master)
 router.post("/obra/:obraId/reporte-pdf", check.auth, check.adminOrMaster, reportePdfController.createReportePdf);
+router.get("/reporte-pdf", check.auth, check.adminOrMaster, reportePdfController.listAllReportes);
 router.get("/obra/:obraId/reporte-pdf", check.auth, check.adminOrMaster, reportePdfController.listReportesByObra);
 router.get("/reporte-pdf/:id", check.auth, check.adminOrMaster, reportePdfController.getReportePdfById);
 router.get("/reporte-pdf/clave/:clave", check.auth, check.adminOrMaster, reportePdfController.getReportePdfByClave);

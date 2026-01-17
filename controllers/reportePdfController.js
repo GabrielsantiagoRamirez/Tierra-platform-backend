@@ -74,6 +74,32 @@ const createReportePdf = async (req, res) => {
 };
 
 /**
+ * Lista todos los reportes PDF de todas las obras
+ */
+const listAllReportes = async (req, res) => {
+   try {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+
+      const result = await reportePdfService.listAllReportes(page, limit);
+
+      return res.status(200).json({
+         status: 'success',
+         data: result
+      });
+
+   } catch (error) {
+      console.error('❌ [REPORTE_PDF] Error:', error.message);
+
+      return res.status(500).json({
+         status: 'error',
+         message: 'Error listing all reportes PDF',
+         error: error.message
+      });
+   }
+};
+
+/**
  * Lista todos los reportes PDF de una obra
  */
 const listReportesByObra = async (req, res) => {
@@ -239,6 +265,7 @@ const deleteReportePdfByClave = async (req, res) => {
 
 module.exports = {
    createReportePdf,
+   listAllReportes,
    listReportesByObra,
    getReportePdfById,
    getReportePdfByClave,
