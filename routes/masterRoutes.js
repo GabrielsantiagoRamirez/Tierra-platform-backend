@@ -57,6 +57,7 @@ router.post("/obra/:obraId/reporte-pdf", check.auth, check.adminOrMaster, report
 router.get("/reporte-pdf", check.auth, check.adminOrMaster, reportePdfController.listAllReportes);
 router.get("/obra/:obraId/reporte-pdf", check.auth, check.adminOrMaster, reportePdfController.listReportesByObra);
 router.get("/reporte-pdf/:id", check.auth, check.adminOrMaster, reportePdfController.getReportePdfById);
+router.get("/reporte-pdf/:id/download", check.auth, check.adminOrMaster, reportePdfController.downloadReportePdfById);
 router.get("/reporte-pdf/clave/:clave", check.auth, check.adminOrMaster, reportePdfController.getReportePdfByClave);
 router.delete("/reporte-pdf/:id", check.auth, check.adminOrMaster, reportePdfController.deleteReportePdfById);
 router.delete("/reporte-pdf/clave/:clave", check.auth, check.adminOrMaster, reportePdfController.deleteReportePdfByClave);

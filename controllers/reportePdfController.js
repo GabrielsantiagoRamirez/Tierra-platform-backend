@@ -231,6 +231,71 @@ const deleteReportePdfById = async (req, res) => {
 };
 
 /**
+ * Descarga un reporte PDF por su ID
+ * Si la URL es de Cloudinary y está protegida, redirige directamente
+ * Si no, intenta descargar y servir el PDF
+ */
+const downloadReportePdfById = async (req, res) => {
+   try {
+      const { id } = req.params;
+      const { redirect } = req.query; // Parámetro opcional: ?redirect=true para solo redirigir
+
+      // Obtener el reporte PDF
+      const reporte = await reportePdfService.getReportePdfById(id);
+
+      if (!reporte) {
+         return res.status(404).json({
+            status: 'error',
+            message: 'Reporte PDF not found'
+         });
+      }
+
+      // Si el parámetro redirect=true, simplemente redirigir a la URL
+      if (redirect === 'true') {
+         return res.redirect(302, reporte.url);
+      }
+
+      // Intentar descargar y servir el PDF
+      try {
+         const pdfBuffer = await reportePdfService.downloadPdfFromUrl(reporte.url);
+
+         // Configurar headers para descarga de PDF
+         const nombreArchivo = reporte.nombre || `reporte-${reporte.clave}.pdf`;
+         
+         res.setHeader('Content-Type', 'application/pdf');
+         res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivo}"`);
+         res.setHeader('Content-Length', pdfBuffer.length);
+
+         // Enviar el PDF como respuesta
+         return res.status(200).send(pdfBuffer);
+
+      } catch (downloadError) {
+         // Si falla la descarga (p.ej., 401 Unauthorized), redirigir directamente
+         console.warn('⚠️  [REPORTE_PDF] Error descargando PDF, redirigiendo directamente:', downloadError.message);
+         
+         // Redirigir a la URL de Cloudinary
+         return res.redirect(302, reporte.url);
+      }
+
+   } catch (error) {
+      console.error('❌ [REPORTE_PDF] Error:', error.message);
+
+      if (error.message.includes('not found')) {
+         return res.status(404).json({
+            status: 'error',
+            message: error.message
+         });
+      }
+
+      return res.status(500).json({
+         status: 'error',
+         message: 'Error downloading reporte PDF',
+         error: error.message
+      });
+   }
+};
+
+/**
  * Elimina un reporte PDF por su clave
  */
 const deleteReportePdfByClave = async (req, res) => {
@@ -269,6 +334,7 @@ module.exports = {
    listReportesByObra,
    getReportePdfById,
    getReportePdfByClave,
+   downloadReportePdfById,
    deleteReportePdfById,
    deleteReportePdfByClave
 };
